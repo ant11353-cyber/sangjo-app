@@ -2,47 +2,49 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import base64
+import os
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 배경화면 (사용자 지정 이미지 적용)
+# 1. 페이지 설정 및 배경화면
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
-# 깃허브에 올린 'bg.jpg'를 배경으로 사용하는 주소
-# (사용자 ID: ant11353-cyber, 저장소: sangjo-app 기준)
-background_url = "https://raw.githubusercontent.com/ant11353-cyber/sangjo-app/main/bg.jpg"
+def get_base64_of_bin_file(bin_file):
+    """이미지 파일을 읽어서 코드로 변환하는 함수"""
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
 
-st.markdown(
-    f"""
-    <style>
-    /* 전체 배경화면 설정 */
-    .stApp {{
-        background-image: url("{background_url}");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }}
-    
-    /* 가독성을 위해 흰색 박스 적용 (투명도 조절) */
-    .block-container {{
-        background-color: rgba(255, 255, 255, 0.92);
-        border-radius: 15px;
-        padding: 2rem;
-        margin-top: 2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    }}
-    
-    /* 버튼 스타일 살짝 강조 */
-    .stButton > button {{
-        width: 100%;
-        border-radius: 10px;
-        font-weight: bold;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+def set_png_as_page_bg(png_file):
+    """변환된 코드를 배경화면으로 설정하는 함수"""
+    try:
+        bin_str = get_base64_of_bin_file(png_file)
+        page_bg_img = f'''
+        <style>
+        .stApp {{
+            background-image: url("data:image/png;base64,{bin_str}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }}
+        /* 컨텐츠 가독성을 위한 흰색 박스 스타일 */
+        .block-container {{
+            background-color: rgba(255, 255, 255, 0.92);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }}
+        </style>
+        '''
+        st.markdown(page_bg_img, unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.error(f"배경화면 파일({png_file})을 찾을 수 없습니다. 깃허브 파일명을 확인해주세요.")
+
+# [수정됨] bg.png 파일을 읽도록 변경
+set_png_as_page_bg('bg.png')
 
 st.title("📱 천비칠마 상조회 통합 관리")
 st.write("원하시는 메뉴의 문을 열어주세요.")
@@ -122,7 +124,6 @@ if st.session_state['menu'] == 'personal_status':
         df_members = load_data("members")
         df_ledger = load_data("ledger")
         
-        # 비밀번호 매칭
         user_info = df_members[df_members['비밀번호'].astype(str) == str(password_input)]
         
         if not user_info.empty:
@@ -211,7 +212,6 @@ if st.session_state['menu'] == 'all_status':
     ref_date, months_passed = get_dues_calc_info()
     total_due_target_per_person = 1000000 + (months_passed * 30000)
     
-    # [가] 회비통장의 분석적 검토
     with tab1:
         st.subheader("1. 전체 입금내역 분석 (회원별)")
         
@@ -293,7 +293,6 @@ if st.session_state['menu'] == 'all_status':
         else:
             st.warning("데이터를 불러오는 중입니다.")
 
-    # [나] 보유 자산 현황
     with tab2:
         st.subheader("보유 자산 현황")
         if not df_assets.empty:
@@ -303,7 +302,6 @@ if st.session_state['menu'] == 'all_status':
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
 
-    # [다] 적금통장 이자 발생 누적액
     with tab3:
         st.subheader("적금 이자 수익 분석")
         
