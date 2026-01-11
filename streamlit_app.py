@@ -36,6 +36,13 @@ def set_style(current_menu):
         font-weight: 600;
         transition: all 0.3s ease;
     }}
+    /* 회칙 내용 스타일 */
+    .rule-content {{
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: #333;
+        margin-bottom: 10px;
+    }}
     </style>
     """
     st.markdown(common_style, unsafe_allow_html=True)
@@ -226,7 +233,7 @@ if st.session_state['menu'] == 'personal_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 5. 기능: 회원 전체 현황 (자산 이름 자동 찾기 적용)
+# 5. 기능: 회원 전체 현황
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'all_status':
     render_header("📊 회원 전체 및 자산 현황")
@@ -235,16 +242,13 @@ if st.session_state['menu'] == 'all_status':
     df_ledger = load_data("ledger")
     df_assets = load_data("assets")
     
-    # [수정] 자산 시트에서 '이름(항목)' 컬럼 자동 찾기
     asset_name_col = None
     if not df_assets.empty:
-        # 이 중에서 하나라도 걸리면 그걸 자산 이름으로 씁니다.
         for col in ['항목', '자산명', '자산', '계좌명', '구분', '내용', 'Asset']:
             if col in df_assets.columns:
                 asset_name_col = col
                 break
     
-    # [수정] 자산 시트에서 '금액' 컬럼 자동 찾기
     asset_amount_col = None
     if not df_assets.empty:
         for col in ['금액', '잔액', '평가액', '자산금액', 'Amount']:
@@ -334,16 +338,11 @@ if st.session_state['menu'] == 'all_status':
             else:
                 expected_balance = 0
 
-            # 자산 잔액 비교 (이름/금액 컬럼이 다 확인되었을 때만 실행)
             if asset_amount_col and asset_name_col:
-                # '회비통장'이 포함된 항목을 찾음
                 try: 
-                    # contains로 '회비통장' 글자가 들어간 행 찾기
                     mask = df_assets[asset_name_col].str.contains('회비통장', na=False)
-                    if mask.any():
-                        real_balance = df_assets[mask][asset_amount_col].iloc[0]
-                    else:
-                        real_balance = 0
+                    if mask.any(): real_balance = df_assets[mask][asset_amount_col].iloc[0]
+                    else: real_balance = 0
                 except: real_balance = 0
             else:
                 real_balance = 0
@@ -362,29 +361,30 @@ if st.session_state['menu'] == 'all_status':
 
     with tab3:
         st.subheader("적금 수익")
-        # [수정] '항목' 대신 찾은 asset_name_col 사용
         if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
             savings_principal = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류'].str.contains('적금'))]['금액'].sum()
-            
-            # contains로 '적금' 글자가 들어간 모든 행의 합계
             mask = df_assets[asset_name_col].str.contains('적금', na=False)
             savings_current = df_assets[mask][asset_amount_col].sum()
-            
             st.metric("이자 수익", f"{savings_current - savings_principal:,} 원")
 
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 6. 기능: 회칙
+# 6. 기능: 회칙 (펼쳐보기 모드 수정)
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'rules':
     render_header("📜 회칙 및 규정")
     df_rules = load_data("rules")
     search_rule = st.text_input("규정 검색", placeholder="검색어를 입력하세요")
+    
     if not df_rules.empty:
         if search_rule:
             df_rules = df_rules[df_rules['내용'].str.contains(search_rule) | df_rules['조항'].str.contains(search_rule)]
+        
+        # [수정] expander(접기/펼치기) 대신 바로 보여주기
         for idx, row in df_rules.iterrows():
-            with st.expander(f"📌 {row.get('조항', '-')}"):
-                st.write(row.get('내용', '-'))
+            st.markdown(f"#### 📌 {row.get('조항', '-')}")
+            st.markdown(f"<div class='rule-content'>{row.get('내용', '-')}</div>", unsafe_allow_html=True)
+            st.divider() # 구분선 추가
+            
     render_footer()
