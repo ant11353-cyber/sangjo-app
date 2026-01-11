@@ -36,6 +36,10 @@ def set_style(current_menu):
         font-weight: 600;
         transition: all 0.3s ease;
     }}
+    /* 표 헤더 가운데 정렬 */
+    th {{
+        text-align: center !important;
+    }}
     </style>
     """
     st.markdown(common_style, unsafe_allow_html=True)
@@ -111,7 +115,6 @@ def load_data(sheet_name):
             sheet_id = url.split("/d/")[1].split("/")[0]
             csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
             df = pd.read_csv(csv_url, dtype=str)
-            # [수정] 컬럼 이름의 공백 제거 (예: "금액 " -> "금액")
             df.columns = df.columns.str.strip()
             return df
         else:
@@ -191,12 +194,7 @@ if st.session_state['menu'] == 'personal_status':
             
             my_deposit = 0; my_condolence_amt = 0; my_wreath_amt = 0
             if not df_ledger.empty:
-                # [수정] 금액 컬럼 찾기 ('금액'이 없으면 '입금액'이나 '지출액' 등 추정)
-                amount_col = '금액'
-                if '금액' not in df_ledger.columns:
-                     # 임시 방편: 숫자가 있는 컬럼을 찾거나 사용자에게 알림
-                     pass
-                else:
+                if '금액' in df_ledger.columns:
                     df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
                     my_deposit = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == user_name)]['금액'].sum()
                     my_condolence_amt = df_ledger[(df_ledger['구분'] == '지출') & (df_ledger['분류'] == '조의금') & (df_ledger['내용'] == user_name)]['금액'].sum()
@@ -232,7 +230,7 @@ if st.session_state['menu'] == 'personal_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 5. 기능: 회원 전체 현황 (에러 수정됨)
+# 5. 기능: 회원 전체 현황 (수정됨: 표 디자인 개선)
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'all_status':
     render_header("📊 회원 전체 및 자산 현황")
@@ -241,21 +239,13 @@ if st.session_state['menu'] == 'all_status':
     df_ledger = load_data("ledger")
     df_assets = load_data("assets")
     
-    # [수정] 자산 시트에서 '금액' 컬럼 찾기 (이름이 달라도 찾도록)
     asset_amount_col = None
     if not df_assets.empty:
-        for col in ['금액', '잔액', '평가액', '자산금액', 'Amount']:
+        for col in ['금액', '잔액', '평가액', '자산금액']:
             if col in df_assets.columns:
                 asset_amount_col = col
                 break
     
-    # [수정] 장부 시트에서 '금액' 컬럼 찾기
-    ledger_amount_col = '금액' # 기본값
-    if not df_ledger.empty and '금액' not in df_ledger.columns:
-         # 없으면 첫번째로 보이는 숫자형 컬럼이나 다른 후보를 찾아볼 수 있음 (여기선 '금액'이라 가정하고 진행하되 에러 방지)
-         pass
-
-    # 숫자 변환 안전하게 처리
     if not df_ledger.empty and '금액' in df_ledger.columns:
         df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
     
@@ -272,7 +262,6 @@ if st.session_state['menu'] == 'all_status':
             analysis_data = []
             for index, row in df_members.iterrows():
                 name = row['성명']
-                # [수정] 금액 컬럼이 있을 때만 계산
                 if '금액' in df_ledger.columns:
                     paid_total = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == name)]['금액'].sum()
                 else:
@@ -280,10 +269,46 @@ if st.session_state['menu'] == 'all_status':
                 
                 unpaid = total_due_target_per_person - paid_total
                 note = "미납" if unpaid > 0 else ("선납" if unpaid < 0 else "완납")
-                analysis_data.append({"회원명": name, "납부대상액": total_due_target_per_person, "납부한금액": paid_total, "차액": unpaid, "상태": note})
+                
+                # [수정] 요청하신 컬럼명으로 변경
+                analysis_data.append({
+                    "회원명": name, 
+                    "A.납부할금액": total_due_target_per_person, 
+                    "B.납부한금액": paid_total, 
+                    "차이금액(=A-B)": unpaid, 
+                    "상태": note
+                })
             
             df_analysis = pd.DataFrame(analysis_data)
-            st.dataframe(df_analysis, use_container_width=True, hide_index=True)
+            
+            # [추가] 합계 행 생성
+            total_due = df_analysis['A.납부할금액'].sum()
+            total_paid = df_analysis['B.납부한금액'].sum()
+            total_diff = df_analysis['차이금액(=A-B)'].sum()
+            
+            total_row = pd.DataFrame([{
+                "회원명": "합계",
+                "A.납부할금액": total_due,
+                "B.납부한금액": total_paid,
+                "차이금액(=A-B)": total_diff,
+                "상태": "-"
+            }])
+            
+            df_display = pd.concat([df_analysis, total_row], ignore_index=True)
+            
+            # [수정] 가운데 정렬 및 포맷 설정
+            st.dataframe(
+                df_display, 
+                use_container_width=True, 
+                hide_index=True,
+                column_config={
+                    "회원명": st.column_config.TextColumn(alignment="center"),
+                    "A.납부할금액": st.column_config.NumberColumn(format="%d", alignment="center"),
+                    "B.납부한금액": st.column_config.NumberColumn(format="%d", alignment="center"),
+                    "차이금액(=A-B)": st.column_config.NumberColumn(format="%d", alignment="center"),
+                    "상태": st.column_config.TextColumn(alignment="center")
+                }
+            )
             
             st.divider()
             st.subheader("2. 지출 및 잔액 분석")
@@ -304,10 +329,8 @@ if st.session_state['menu'] == 'all_status':
                 exp_savings = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류'].str.contains('적금'))]['금액'].sum()
                 expected_balance = total_income - (exp_total + exp_savings)
             else:
-                st.error("장부 데이터에 '금액' 열이 없습니다.")
                 expected_balance = 0
 
-            # 자산 잔액 비교
             if asset_amount_col:
                 try: real_balance = df_assets[df_assets['항목'] == '회비통장'][asset_amount_col].iloc[0]
                 except: real_balance = 0
@@ -320,12 +343,9 @@ if st.session_state['menu'] == 'all_status':
 
     with tab2:
         st.subheader("보유 자산")
-        if not df_assets.empty:
-            if asset_amount_col:
-                st.dataframe(df_assets, use_container_width=True, hide_index=True)
-                st.metric("총 자산", f"{df_assets[asset_amount_col].sum():,} 원")
-            else:
-                st.error(f"⚠️ 'assets' 시트에서 [금액, 잔액, 평가액] 중 해당하는 열 이름을 찾을 수 없습니다.\n현재 열 이름: {list(df_assets.columns)}")
+        if not df_assets.empty and asset_amount_col:
+            st.dataframe(df_assets, use_container_width=True, hide_index=True)
+            st.metric("총 자산", f"{df_assets[asset_amount_col].sum():,} 원")
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
 
