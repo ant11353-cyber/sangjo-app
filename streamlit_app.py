@@ -36,10 +36,6 @@ def set_style(current_menu):
         font-weight: 600;
         transition: all 0.3s ease;
     }}
-    /* 표 헤더 가운데 정렬 */
-    th {{
-        text-align: center !important;
-    }}
     </style>
     """
     st.markdown(common_style, unsafe_allow_html=True)
@@ -230,7 +226,7 @@ if st.session_state['menu'] == 'personal_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 5. 기능: 회원 전체 현황 (수정됨: 표 디자인 개선)
+# 5. 기능: 회원 전체 현황 (에러 수정 및 기능 보완)
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'all_status':
     render_header("📊 회원 전체 및 자산 현황")
@@ -270,7 +266,7 @@ if st.session_state['menu'] == 'all_status':
                 unpaid = total_due_target_per_person - paid_total
                 note = "미납" if unpaid > 0 else ("선납" if unpaid < 0 else "완납")
                 
-                # [수정] 요청하신 컬럼명으로 변경
+                # 명칭 변경 반영
                 analysis_data.append({
                     "회원명": name, 
                     "A.납부할금액": total_due_target_per_person, 
@@ -281,7 +277,7 @@ if st.session_state['menu'] == 'all_status':
             
             df_analysis = pd.DataFrame(analysis_data)
             
-            # [추가] 합계 행 생성
+            # 합계 행 추가
             total_due = df_analysis['A.납부할금액'].sum()
             total_paid = df_analysis['B.납부한금액'].sum()
             total_diff = df_analysis['차이금액(=A-B)'].sum()
@@ -296,17 +292,17 @@ if st.session_state['menu'] == 'all_status':
             
             df_display = pd.concat([df_analysis, total_row], ignore_index=True)
             
-            # [수정] 가운데 정렬 및 포맷 설정
+            # [수정] 에러를 피하기 위해 정렬 옵션(alignment)을 제거하고 포맷만 적용
             st.dataframe(
                 df_display, 
                 use_container_width=True, 
                 hide_index=True,
                 column_config={
-                    "회원명": st.column_config.TextColumn(alignment="center"),
-                    "A.납부할금액": st.column_config.NumberColumn(format="%d", alignment="center"),
-                    "B.납부한금액": st.column_config.NumberColumn(format="%d", alignment="center"),
-                    "차이금액(=A-B)": st.column_config.NumberColumn(format="%d", alignment="center"),
-                    "상태": st.column_config.TextColumn(alignment="center")
+                    "회원명": st.column_config.TextColumn(),
+                    "A.납부할금액": st.column_config.NumberColumn(format="%d"),
+                    "B.납부한금액": st.column_config.NumberColumn(format="%d"),
+                    "차이금액(=A-B)": st.column_config.NumberColumn(format="%d"),
+                    "상태": st.column_config.TextColumn()
                 }
             )
             
