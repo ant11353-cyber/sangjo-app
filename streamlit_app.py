@@ -226,7 +226,7 @@ if st.session_state['menu'] == 'personal_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 5. 기능: 회원 전체 현황 (에러 수정 및 기능 보완)
+# 5. 기능: 회원 전체 현황 (자산 이름 자동 찾기 적용)
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'all_status':
     render_header("📊 회원 전체 및 자산 현황")
@@ -235,9 +235,19 @@ if st.session_state['menu'] == 'all_status':
     df_ledger = load_data("ledger")
     df_assets = load_data("assets")
     
+    # [수정] 자산 시트에서 '이름(항목)' 컬럼 자동 찾기
+    asset_name_col = None
+    if not df_assets.empty:
+        # 이 중에서 하나라도 걸리면 그걸 자산 이름으로 씁니다.
+        for col in ['항목', '자산명', '자산', '계좌명', '구분', '내용', 'Asset']:
+            if col in df_assets.columns:
+                asset_name_col = col
+                break
+    
+    # [수정] 자산 시트에서 '금액' 컬럼 자동 찾기
     asset_amount_col = None
     if not df_assets.empty:
-        for col in ['금액', '잔액', '평가액', '자산금액']:
+        for col in ['금액', '잔액', '평가액', '자산금액', 'Amount']:
             if col in df_assets.columns:
                 asset_amount_col = col
                 break
@@ -266,7 +276,6 @@ if st.session_state['menu'] == 'all_status':
                 unpaid = total_due_target_per_person - paid_total
                 note = "미납" if unpaid > 0 else ("선납" if unpaid < 0 else "완납")
                 
-                # 명칭 변경 반영
                 analysis_data.append({
                     "회원명": name, 
                     "A.납부할금액": total_due_target_per_person, 
@@ -277,7 +286,6 @@ if st.session_state['menu'] == 'all_status':
             
             df_analysis = pd.DataFrame(analysis_data)
             
-            # 합계 행 추가
             total_due = df_analysis['A.납부할금액'].sum()
             total_paid = df_analysis['B.납부한금액'].sum()
             total_diff = df_analysis['차이금액(=A-B)'].sum()
@@ -292,7 +300,6 @@ if st.session_state['menu'] == 'all_status':
             
             df_display = pd.concat([df_analysis, total_row], ignore_index=True)
             
-            # [수정] 에러를 피하기 위해 정렬 옵션(alignment)을 제거하고 포맷만 적용
             st.dataframe(
                 df_display, 
                 use_container_width=True, 
@@ -327,8 +334,16 @@ if st.session_state['menu'] == 'all_status':
             else:
                 expected_balance = 0
 
-            if asset_amount_col:
-                try: real_balance = df_assets[df_assets['항목'] == '회비통장'][asset_amount_col].iloc[0]
+            # 자산 잔액 비교 (이름/금액 컬럼이 다 확인되었을 때만 실행)
+            if asset_amount_col and asset_name_col:
+                # '회비통장'이 포함된 항목을 찾음
+                try: 
+                    # contains로 '회비통장' 글자가 들어간 행 찾기
+                    mask = df_assets[asset_name_col].str.contains('회비통장', na=False)
+                    if mask.any():
+                        real_balance = df_assets[mask][asset_amount_col].iloc[0]
+                    else:
+                        real_balance = 0
                 except: real_balance = 0
             else:
                 real_balance = 0
@@ -347,9 +362,14 @@ if st.session_state['menu'] == 'all_status':
 
     with tab3:
         st.subheader("적금 수익")
-        if not df_ledger.empty and not df_assets.empty and asset_amount_col and '금액' in df_ledger.columns:
+        # [수정] '항목' 대신 찾은 asset_name_col 사용
+        if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
             savings_principal = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류'].str.contains('적금'))]['금액'].sum()
-            savings_current = df_assets[df_assets['항목'].str.contains('적금')][asset_amount_col].sum()
+            
+            # contains로 '적금' 글자가 들어간 모든 행의 합계
+            mask = df_assets[asset_name_col].str.contains('적금', na=False)
+            savings_current = df_assets[mask][asset_amount_col].sum()
+            
             st.metric("이자 수익", f"{savings_current - savings_principal:,} 원")
 
     render_footer()
