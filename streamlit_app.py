@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# 1. 페이지 설정 (아이콘과 제목)
+# 1. 페이지 설정
 st.set_page_config(page_title="우리 모임", page_icon="📱", layout="wide")
 
 st.title("📱 우리 모임 통합 관리")
@@ -20,37 +20,35 @@ def load_data(sheet_name):
 # 3. 탭 구성
 tab1, tab2, tab3, tab4 = st.tabs(["👥 회원찾기", "💰 회계장부", "🏢 자산", "📜 회칙"])
 
-# --- 탭 1: 회원 명부 (검색 기능 + 카드 뷰) ---
+# --- 탭 1: 회원 명부 ---
 with tab1:
     st.header("회원 연락처 찾기")
     df_members = load_data("members")
     
     if not df_members.empty:
-        # 상단 통계
         st.metric("총 회원 수", f"{len(df_members)}명")
         
-        # 🔍 검색창 만들기
         search_name = st.text_input("이름으로 검색해보세요", placeholder="예: 홍길동")
         
-        # 검색 기능 적용
+        # [수정] '이름' -> '성명'으로 변경
         if search_name:
-            df_members = df_members[df_members['이름'].astype(str).str.contains(search_name)]
+            df_members = df_members[df_members['성명'].astype(str).str.contains(search_name)]
         
-        st.divider() # 구분선
+        st.divider()
         
-        # 📱 스마트폰처럼 '카드' 형태로 보여주기
         for idx, row in df_members.iterrows():
-            # 이름과 직책을 제목으로 표시
-            with st.expander(f"👤 {row['이름']} ({row.get('직책', '회원')})"):
-                # 펼치면 상세 정보 보임
+            # [수정] '이름' -> '성명'으로 변경
+            # 전화번호나 직책이 비어있으면 '-'로 표시
+            with st.expander(f"👤 {row['성명']} ({row.get('직책', '회원')})"):
                 st.write(f"📞 **전화번호:** {row.get('전화번호', '-')}")
-                st.write(f"📅 **가입일:** {row.get('가입일', '-')}")
-                # 필요한 항목이 더 있다면 여기에 추가: st.write(f"주소: {row.get('주소', '-')}")
+                # 가입일 컬럼이 시트에 안보여서, 있으면 보여주고 없으면 숨김 처리
+                if '가입일' in row:
+                    st.write(f"📅 **가입일:** {row['가입일']}")
 
     else:
         st.warning("데이터를 불러오지 못했습니다. 탭 이름(members)을 확인하세요.")
 
-# --- 탭 2: 회계 장부 (표 형태) ---
+# --- 탭 2: 회계 장부 ---
 with tab2:
     st.header("회비 입출금 내역")
     df_ledger = load_data("ledger")
@@ -70,7 +68,6 @@ with tab4:
     st.header("회칙 및 규정")
     df_rules = load_data("rules")
     if not df_rules.empty:
-        # 회칙은 줄글이 많으므로 표보다는 리스트로 보여주기
         for idx, row in df_rules.iterrows():
             st.markdown(f"**{row.get('조항', '-')}**")
             st.write(row.get('내용', '-'))
