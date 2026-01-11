@@ -17,6 +17,7 @@ def get_base64_of_bin_file(bin_file):
 def set_png_as_page_bg(png_file):
     try:
         bin_str = get_base64_of_bin_file(png_file)
+        # [수정] f-string 안에서 CSS 중괄호는 {{ }} 두 번 써야 함
         page_bg_img = f'''
         <style>
         /* 배경화면 설정 */
@@ -32,7 +33,7 @@ def set_png_as_page_bg(png_file):
         .block-container {{
             background-color: transparent; 
             padding-top: 0rem;
-            padding-left: 2rem; /* 왼쪽 여백 살짝 줌 */
+            padding-left: 2rem;
             max-width: 100%;
         }}
 
@@ -52,33 +53,29 @@ def set_png_as_page_bg(png_file):
         /* [메뉴 버튼 스타일] 분위기에 맞게 수정 */
         .stButton > button {{
             width: 100%;
-            height: 4rem;              /* 버튼 높이 넉넉하게 */
-            border-radius: 8px;        /* 모서리 살짝 둥글게 */
-            font-size: 1.3rem;         /* 글자 크기 키움 */
+            height: 4rem;              
+            border-radius: 8px;        
+            font-size: 1.3rem;         
             font-weight: 600;
-            
-            /* 유리처럼 반투명한 검은색 배경 */
             background-color: rgba(0, 0, 0, 0.5); 
-            color: #f0f0f0;            /* 글자색: 은은한 흰색 */
-            border: 1px solid rgba(255, 255, 255, 0.3); /* 테두리 얇게 */
-            
-            /* 그림자 효과로 입체감 주기 */
+            color: #f0f0f0;            
+            border: 1px solid rgba(255, 255, 255, 0.3); 
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             transition: all 0.3s ease;
         }}
 
-        /* 마우스 올렸을 때 효과 (하이라이트) */
+        /* 마우스 올렸을 때 효과 */
         .stButton > button:hover {{
-            background-color: rgba(0, 0, 0, 0.8); /* 더 진한 검정 */
-            color: #ffcc00;            /* 황금색 글자 */
-            border-color: #ffcc00;     /* 황금색 테두리 */
-            transform: scale(1.02);    /* 살짝 커지는 효과 */
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #ffcc00;
+            border-color: #ffcc00;
+            transform: scale(1.02);
         }}
         
-        /* 모바일 화면에서 버튼 간격 조정 */
-        div[data-testid="column"] {
+        /* [수정된 부분] 모바일 화면에서 버튼 간격 조정 */
+        div[data-testid="column"] {{
             gap: 1rem;
-        }
+        }}
         </style>
         '''
         st.markdown(page_bg_img, unsafe_allow_html=True)
@@ -98,7 +95,6 @@ def load_data(sheet_name):
         if "/d/" in url:
             sheet_id = url.split("/d/")[1].split("/")[0]
             csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
-            # 아이디 비교를 위해 모든 데이터를 문자열로 읽음
             return pd.read_csv(csv_url, dtype=str)
         else:
             return pd.DataFrame()
@@ -129,12 +125,11 @@ if 'menu' not in st.session_state:
 # [홈 화면] 왼쪽 세로 메뉴 배치
 if st.session_state['menu'] == 'home':
     
-    # 화면을 왼쪽(메뉴)과 오른쪽(여백)으로 나눔 [비율 1:4]
-    # 왼쪽 좁은 칸에 버튼을 둡니다.
+    # 왼쪽(메뉴) : 오른쪽(여백) = 1 : 4 비율
     left_col, right_col = st.columns([1, 3])
     
     with left_col:
-        # 화면 중간쯤에 오도록 빈 공간 추가 (높이 조절 가능)
+        # 화면 위쪽 여백 (높이 조절)
         st.markdown("<div style='height: 35vh;'></div>", unsafe_allow_html=True)
         
         # 메뉴 1
