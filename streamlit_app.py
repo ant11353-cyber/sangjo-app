@@ -5,88 +5,119 @@ from dateutil.relativedelta import relativedelta
 import base64
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 디자인 (왼쪽 메뉴 배치 + 분위기 있는 디자인)
+# 1. 초기 설정 (페이지 제목 등)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
+# 세션 상태 초기화 (메뉴 기억하기)
+if 'menu' not in st.session_state:
+    st.session_state['menu'] = 'home'
+
+# -----------------------------------------------------------------------------
+# 2. 디자인 및 배경화면 제어 함수 (핵심 수정 부분!)
+# -----------------------------------------------------------------------------
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
         data = f.read()
     return base64.b64encode(data).decode()
 
-def set_png_as_page_bg(png_file):
-    try:
-        bin_str = get_base64_of_bin_file(png_file)
-        # [수정] f-string 안에서 CSS 중괄호는 {{ }} 두 번 써야 함
-        page_bg_img = f'''
+def set_style(current_menu):
+    """메뉴 상태에 따라 배경화면을 다르게 설정하는 함수"""
+    
+    # 공통 스타일 (버튼, 박스 등)
+    common_style = """
+    <style>
+    /* 상세 페이지용 흰색 박스 스타일 */
+    .content-box {{
+        background-color: #ffffff;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+        margin-bottom: 20px;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }}
+    /* 버튼 기본 스타일 */
+    .stButton > button {{
+        width: 100%;
+        height: 4rem;
+        border-radius: 8px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }}
+    </style>
+    """
+    st.markdown(common_style, unsafe_allow_html=True)
+
+    # [CASE 1] 홈 화면일 때 -> 배경화면 이미지 사용
+    if current_menu == 'home':
+        try:
+            bin_str = get_base64_of_bin_file('bg.png')
+            home_style = f"""
+            <style>
+            .stApp {{
+                background-image: url("data:image/png;base64,{bin_str}");
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+            }}
+            /* 홈 화면에서는 상단 여백 제거 및 컨테이너 투명화 */
+            .block-container {{
+                background-color: transparent; 
+                padding-top: 0rem;
+                padding-left: 2rem;
+                max-width: 100%;
+            }}
+            /* 홈 화면 버튼: 배경에 잘 보이게 반투명 검정 */
+            .stButton > button {{
+                background-color: rgba(0, 0, 0, 0.6); 
+                color: #f0f0f0;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            }}
+            .stButton > button:hover {{
+                background-color: rgba(0, 0, 0, 0.9);
+                color: #ffcc00;
+                border-color: #ffcc00;
+                transform: scale(1.02);
+            }}
+            </style>
+            """
+            st.markdown(home_style, unsafe_allow_html=True)
+        except FileNotFoundError:
+            st.error("배경화면 파일(bg.png)을 찾을 수 없습니다.")
+
+    # [CASE 2] 상세 메뉴일 때 -> 깔끔한 회색 배경 사용
+    else:
+        detail_style = """
         <style>
-        /* 배경화면 설정 */
         .stApp {{
-            background-image: url("data:image/png;base64,{bin_str}");
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
+            background-image: none !important;
+            background-color: #f0f2f6; /* 눈이 편한 밝은 회색 */
         }}
-        
-        /* 상단 여백 제거 및 컨테이너 투명화 */
-        .block-container {{
-            background-color: transparent; 
-            padding-top: 0rem;
-            padding-left: 2rem;
-            max-width: 100%;
-        }}
-
-        /* [상세 페이지용] 흰색 박스 스타일 */
-        .content-box {{
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-            margin-top: 20px;
-            margin-bottom: 20px;
-            max-width: 1200px;
-            margin-left: auto;
-            margin-right: auto;
-        }}
-
-        /* [메뉴 버튼 스타일] 분위기에 맞게 수정 */
+        /* 상세 화면 버튼: 깔끔한 흰색/파란색 스타일 */
         .stButton > button {{
-            width: 100%;
-            height: 4rem;              
-            border-radius: 8px;        
-            font-size: 1.3rem;         
-            font-weight: 600;
-            background-color: rgba(0, 0, 0, 0.5); 
-            color: #f0f0f0;            
-            border: 1px solid rgba(255, 255, 255, 0.3); 
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
+            background-color: #ffffff;
+            color: #31333F;
+            border: 1px solid #d6d6d8;
         }}
-
-        /* 마우스 올렸을 때 효과 */
         .stButton > button:hover {{
-            background-color: rgba(0, 0, 0, 0.8);
-            color: #ffcc00;
-            border-color: #ffcc00;
-            transform: scale(1.02);
-        }}
-        
-        /* [수정된 부분] 모바일 화면에서 버튼 간격 조정 */
-        div[data-testid="column"] {{
-            gap: 1rem;
+            border-color: #ff4b4b;
+            color: #ff4b4b;
         }}
         </style>
-        '''
-        st.markdown(page_bg_img, unsafe_allow_html=True)
-    except FileNotFoundError:
-        st.error(f"배경화면 파일({png_file})을 찾을 수 없습니다.")
+        """
+        st.markdown(detail_style, unsafe_allow_html=True)
 
-# 배경화면 적용
-set_png_as_page_bg('bg.png')
+# 현재 메뉴 상태에 맞춰 스타일 적용 실행
+set_style(st.session_state['menu'])
 
 # -----------------------------------------------------------------------------
-# 2. 데이터 불러오기 및 공통 함수
+# 3. 데이터 불러오기 및 계산 함수
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=60)
 def load_data(sheet_name):
@@ -117,41 +148,35 @@ def get_dues_calc_info():
     return ref_date, months_passed
 
 # -----------------------------------------------------------------------------
-# 3. 메뉴 선택 및 화면 구성
+# 4. 화면 구성 (홈 화면)
 # -----------------------------------------------------------------------------
-if 'menu' not in st.session_state:
-    st.session_state['menu'] = 'home'
-
-# [홈 화면] 왼쪽 세로 메뉴 배치
 if st.session_state['menu'] == 'home':
-    
-    # 왼쪽(메뉴) : 오른쪽(여백) = 1 : 4 비율
-    left_col, right_col = st.columns([1, 3])
+    # 왼쪽(메뉴) : 오른쪽(여백) = 1 : 4
+    left_col, right_col = st.columns([1, 4])
     
     with left_col:
-        # 화면 위쪽 여백 (높이 조절)
+        # 화면 중간쯤에 오도록 빈 공간 추가
         st.markdown("<div style='height: 35vh;'></div>", unsafe_allow_html=True)
         
-        # 메뉴 1
         if st.button("🚪 회원 전체 현황"):
             st.session_state['menu'] = 'all_status'
             st.rerun()
             
-        st.write("") # 버튼 사이 간격
+        st.write("") 
         
-        # 메뉴 2
         if st.button("🚪 회원 개인 현황"):
             st.session_state['menu'] = 'personal_status'
             st.rerun()
             
-        st.write("") # 버튼 사이 간격
+        st.write("") 
         
-        # 메뉴 3
         if st.button("🚪 회칙 확인"):
             st.session_state['menu'] = 'rules'
             st.rerun()
 
-# [상세 페이지용] 상단바 및 홈 버튼
+# -----------------------------------------------------------------------------
+# 5. 화면 구성 (상세 페이지 공통 헤더/푸터)
+# -----------------------------------------------------------------------------
 def render_header(title):
     st.markdown('<div class="content-box">', unsafe_allow_html=True)
     c1, c2 = st.columns([8, 2])
@@ -163,10 +188,10 @@ def render_header(title):
             st.rerun()
 
 def render_footer():
-    st.markdown('</div>', unsafe_allow_html=True) # 박스 닫기
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 4. [기능 1] 회원 개인 현황 (아이디 입력)
+# 6. [기능 1] 회원 개인 현황
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'personal_status':
     render_header("🔒 회원 개인 현황")
@@ -234,7 +259,7 @@ if st.session_state['menu'] == 'personal_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 5. [기능 2] 회원 전체 현황
+# 7. [기능 2] 회원 전체 현황
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'all_status':
     render_header("📊 회원 전체 및 자산 현황")
@@ -303,7 +328,7 @@ if st.session_state['menu'] == 'all_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 6. [기능 3] 회칙
+# 8. [기능 3] 회칙
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'rules':
     render_header("📜 회칙 및 규정")
