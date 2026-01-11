@@ -4,28 +4,40 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 배경화면 (수정됨)
+# 1. 페이지 설정 및 배경화면 (사용자 지정 이미지 적용)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
-# 새로운 배경화면 URL로 교체
-background_url = "https://png.pngtree.com/thumb_back/fw800/background/20230718/pngtree-serene-korean-landscape-a-3d-render-of-the-countryside-image_3911016.jpg"
+# 깃허브에 올린 'bg.jpg'를 배경으로 사용하는 주소
+# (사용자 ID: ant11353-cyber, 저장소: sangjo-app 기준)
+background_url = "https://raw.githubusercontent.com/ant11353-cyber/sangjo-app/main/bg.jpg"
 
 st.markdown(
     f"""
     <style>
+    /* 전체 배경화면 설정 */
     .stApp {{
         background-image: url("{background_url}");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
+        background-attachment: fixed;
     }}
+    
+    /* 가독성을 위해 흰색 박스 적용 (투명도 조절) */
     .block-container {{
-        background-color: rgba(255, 255, 255, 0.95);
-        border-radius: 20px;
+        background-color: rgba(255, 255, 255, 0.92);
+        border-radius: 15px;
         padding: 2rem;
         margin-top: 2rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }}
+    
+    /* 버튼 스타일 살짝 강조 */
+    .stButton > button {{
+        width: 100%;
+        border-radius: 10px;
+        font-weight: bold;
     }}
     </style>
     """,
@@ -53,10 +65,8 @@ def load_data(sheet_name):
 
 def get_dues_calc_info():
     today = datetime.now()
-    # 기준월: 앱 실행일이 속한 달의 전달
     ref_date = today - relativedelta(months=1)
     
-    # 2020년 2월부터 기준월까지의 개월 수 계산
     start_date = datetime(2020, 2, 1)
     diff = relativedelta(ref_date, start_date)
     months_passed = diff.years * 12 + diff.months
@@ -100,7 +110,7 @@ def go_home():
         st.rerun()
 
 # -----------------------------------------------------------------------------
-# 4. [기능 1] 회원 개인 현황 (비밀번호 체크)
+# 4. [기능 1] 회원 개인 현황
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'personal_status':
     st.header("🔒 회원 개인 현황")
@@ -121,9 +131,7 @@ if st.session_state['menu'] == 'personal_status':
             
             st.success(f"환영합니다, {user_name} ({user['직책']})님!")
             
-            # --- 계산 로직 ---
             ref_date, months_passed = get_dues_calc_info()
-            
             total_due_target = 1000000 + (months_passed * 30000)
             
             if not df_ledger.empty:
@@ -151,7 +159,6 @@ if st.session_state['menu'] == 'personal_status':
             unpaid = total_due_target - my_deposit
             condolence_count = int(my_condolence_amt / 1000000)
             
-            # --- 결과 출력 ---
             st.divider()
             st.subheader(f"📋 {user_name}님의 현황표")
             st.caption(f"기준월: {ref_date.strftime('%Y년 %m월')}")
@@ -204,7 +211,7 @@ if st.session_state['menu'] == 'all_status':
     ref_date, months_passed = get_dues_calc_info()
     total_due_target_per_person = 1000000 + (months_passed * 30000)
     
-    # --- [가] 회비통장의 분석적 검토 ---
+    # [가] 회비통장의 분석적 검토
     with tab1:
         st.subheader("1. 전체 입금내역 분석 (회원별)")
         
@@ -250,7 +257,6 @@ if st.session_state['menu'] == 'all_status':
             
             exp_condolence = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류']=='조의금')]['금액'].sum()
             exp_wreath = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류']=='근조화환')]['금액'].sum()
-            # 회의비 등 (조의금, 근조화환, 적금이 아닌 모든 지출)
             exp_meeting = df_ledger[
                 (df_ledger['구분']=='지출') & 
                 (~df_ledger['분류'].isin(['조의금', '근조화환'])) & 
@@ -269,7 +275,6 @@ if st.session_state['menu'] == 'all_status':
             st.subheader("3. 잔액 차이 검토")
             
             total_income = df_ledger[df_ledger['구분']=='입금']['금액'].sum()
-            # 적금 불입도 통장에서 돈이 나간 것이므로 빼야 통장 잔액과 맞음
             exp_savings = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류'].str.contains('적금'))]['금액'].sum()
             expected_balance = total_income - (exp_total + exp_savings)
             
@@ -288,7 +293,7 @@ if st.session_state['menu'] == 'all_status':
         else:
             st.warning("데이터를 불러오는 중입니다.")
 
-    # --- [나] 보유 자산 현황 ---
+    # [나] 보유 자산 현황
     with tab2:
         st.subheader("보유 자산 현황")
         if not df_assets.empty:
@@ -298,7 +303,7 @@ if st.session_state['menu'] == 'all_status':
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
 
-    # --- [다] 적금통장 이자 발생 누적액 ---
+    # [다] 적금통장 이자 발생 누적액
     with tab3:
         st.subheader("적금 이자 수익 분석")
         
