@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 import base64
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 디자인
+# 1. 페이지 설정 및 디자인 (디자인 톤다운 적용)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
@@ -15,16 +15,17 @@ def get_base64_of_bin_file(bin_file):
     return base64.b64encode(data).decode()
 
 def set_style(current_menu):
+    # 공통 스타일
     common_style = """
     <style>
-    /* 컨텐츠 박스 */
+    /* 컨텐츠 박스 (투명) */
     .content-box {
         background-color: transparent;
         padding: 20px 0px;
         margin-bottom: 20px;
     }
     
-    /* 버튼 스타일 */
+    /* 버튼 공통 스타일 */
     .stButton > button {
         width: 100%;
         height: 5rem;
@@ -68,25 +69,15 @@ def set_style(current_menu):
     .interest-box {
         font-size: 1.8rem;
         font-weight: bold;
-        color: #4CAF50; /* 초록색 */
+        color: #4CAF50;
         text-align: center;
         padding: 20px;
-    }
-    
-    /* [NEW] 로그인 안내 박스 스타일 */
-    .login-guide-box {
-        background-color: rgba(255, 255, 255, 0.9);
-        padding: 25px;
-        border-radius: 15px;
-        text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-        color: #333;
     }
     </style>
     """
     st.markdown(common_style, unsafe_allow_html=True)
 
+    # 홈 화면 스타일 (어두운 배경)
     if current_menu == 'home':
         try:
             bin_str = get_base64_of_bin_file('bg.png')
@@ -117,16 +108,43 @@ def set_style(current_menu):
                 border-color: #ffcc00;
                 transform: scale(1.05);
             }}
+
+            /* [수정] 로그인 안내 박스 스타일 (톤다운 및 조화롭게 변경) */
+            .login-guide-box {{
+                background-color: rgba(255, 255, 255, 0.15); /* 투명도 높임 (어둡게) */
+                padding: 25px;
+                border-radius: 15px;
+                text-align: center;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                margin-bottom: 20px;
+                color: #ffffff; /* 글자색 흰색으로 변경 */
+                border: 1px solid rgba(255, 255, 255, 0.1); /* 은은한 테두리 추가 */
+            }}
+            .login-guide-box h3 {{
+                color: #ffffff !important; /* 제목도 흰색 */
+            }}
+            /* 강조 문구 색상 변경 (노란색 계열) */
+            .highlight {{
+                 color: #ffcc00 !important;
+                 font-weight: bold;
+            }}
+            /* 입력창 라벨 색상 흰색으로 */
+            .stTextInput label {{
+                color: #ffffff !important;
+            }}
             </style>
             """
             st.markdown(home_style, unsafe_allow_html=True)
         except FileNotFoundError:
             st.error("배경화면 파일(bg.png)을 찾을 수 없습니다.")
+    
+    # 상세 화면 스타일 (밝은 배경)
     else:
         detail_style = """
         <style>
         .stApp {
             background-image: none !important;
+            background-color: #f0f2f6;
         }
         .stButton > button {
             background-color: #ffffff;
@@ -136,6 +154,21 @@ def set_style(current_menu):
         .stButton > button:hover {
             border-color: #ff4b4b;
             color: #ff4b4b;
+        }
+        /* 상세 화면에서는 원래대로 밝은 박스 유지 (필요시 수정 가능) */
+        .login-guide-box {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            color: #333;
+            border: 1px solid #eee;
+        }
+        .highlight {
+                 color: #d32f2f !important;
+                 font-weight: bold;
         }
         </style>
         """
@@ -217,16 +250,15 @@ def render_footer():
     st.markdown('</div>', unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 4. 기능: 회원 개인 현황 (디자인 및 문구 수정)
+# 4. 기능: 회원 개인 현황
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'personal_status':
     render_header("🔒 회원 개인 현황")
     
-    # [수정] 화면 중앙 정렬을 위한 컬럼 분할 (좌우 여백 1 : 본문 2 : 좌우 여백 1)
     spacer_left, col_center, spacer_right = st.columns([1, 2, 1])
     
     with col_center:
-        # [수정] 안내 문구 디자인 박스 적용
+        # 로그인 안내 박스 (HTML 구조는 그대로, CSS로 디자인 변경됨)
         st.markdown(
             """
             <div class="login-guide-box">
@@ -234,15 +266,14 @@ if st.session_state['menu'] == 'personal_status':
                 <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 5px;">
                     본인의 이메일 아이디 중 <b>아이디만</b> 입력해주세요.
                 </p>
-                <p style="font-size: 0.95rem; color: #666;">
-                    (예: "abc123@nate.com"이면 <b style="color: #d32f2f;">"abc123"</b>을 입력)
+                <p style="font-size: 0.95rem; opacity: 0.8;">
+                    (예: "abc123@nate.com"이면 <b class="highlight">"abc123"</b>을 입력)
                 </p>
             </div>
             """, 
             unsafe_allow_html=True
         )
         
-        # [수정] 입력창 라벨 변경 ("아이디입력")
         user_id_input = st.text_input("아이디입력", placeholder="여기에 아이디를 입력하세요")
     
     if user_id_input:
