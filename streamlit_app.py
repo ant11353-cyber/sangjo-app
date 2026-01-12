@@ -195,10 +195,9 @@ if st.session_state['menu'] == 'personal_status':
             if not df_ledger.empty:
                 if '금액' in df_ledger.columns:
                     df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
-                    # [수정] 입금 확인 시 '입금' 키워드 사용
+                    # 입금
                     my_deposit = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == user_name)]['금액'].sum()
-                    
-                    # [수정] 지출 확인 시 '출금' 키워드 사용
+                    # 지출
                     my_condolence_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금') & (df_ledger['내용'] == user_name)]['금액'].sum()
                     my_wreath_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환') & (df_ledger['내용'] == user_name)]['금액'].sum()
 
@@ -275,7 +274,6 @@ if st.session_state['menu'] == 'all_status':
             for index, row in df_members.iterrows():
                 name = row['성명']
                 if '금액' in df_ledger.columns:
-                    # 입금액: '구분'이 '입금'인 경우
                     paid_total = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == name)]['금액'].sum()
                 else:
                     paid_total = 0
@@ -322,26 +320,26 @@ if st.session_state['menu'] == 'all_status':
             
             st.divider()
             
-            # [수정] 2. 회비통장지출액 (로직 변경: '출금' & 정확한 분류명 사용)
+            # [수정] 2. 회비통장지출액 (로직 및 설명 수정)
             st.subheader("2. 회비통장지출액")
             
             if '금액' in df_ledger.columns:
-                # (1) 조의금: 구분='출금' AND 분류='조의금'
+                # (1) 조의금: 구분='출금' & 분류='조의금'
                 exp_condolence = df_ledger[
                     (df_ledger['구분'] == '출금') & 
                     (df_ledger['분류'] == '조의금')
                 ]['금액'].sum()
                 
-                # (2) 근조화환: 구분='출금' AND 분류='근조화환'
+                # (2) 근조화환: 구분='출금' & 분류='근조화환'
                 exp_wreath = df_ledger[
                     (df_ledger['구분'] == '출금') & 
                     (df_ledger['분류'] == '근조화환')
                 ]['금액'].sum()
                 
-                # (3) 회의비등: 구분='출금' AND 분류='회의비등' (정확히 '회의비등'만 찾음)
+                # (3) 회의비등: 구분='출금' & 분류='회의비외' (사용자 요청: "회의비외" 합계)
                 exp_meeting = df_ledger[
                     (df_ledger['구분'] == '출금') & 
-                    (df_ledger['분류'] == '회의비등')
+                    (df_ledger['분류'] == '회의비외')
                 ]['금액'].sum()
                 
                 # (4) 합계
@@ -350,9 +348,9 @@ if st.session_state['menu'] == 'all_status':
                 exp_data = {
                     "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 합계"],
                     "내용 설명": [
-                        "조의금 지출 합계",
-                        "근조화환 지출 합계",
-                        "회의비등 지출 합계",
+                        "조의건당 1백만원",
+                        "조의건당 1십만원",
+                        "상조기 및 모임식대, 각종소포품 등",
                         "=(1)+(2)+(3)"
                     ],
                     "금액": [exp_condolence, exp_wreath, exp_meeting, exp_total]
@@ -364,13 +362,16 @@ if st.session_state['menu'] == 'all_status':
                     use_container_width=True,
                     hide_index=True,
                     column_config={
+                        "지출 항목": st.column_config.TextColumn(width="medium"),
+                        "내용 설명": st.column_config.TextColumn(width="large"),
                         "금액": st.column_config.NumberColumn(format="%d")
                     }
                 )
 
+                # 예상 잔액 계산 (수입 - 지출 - 적금불입액)
                 total_income = df_ledger[df_ledger['구분']=='입금']['금액'].sum()
                 
-                # 적금 불입액 (예상 잔액 계산용, 구분='출금'이고 분류에 '적금' 포함)
+                # 적금 불입액 (구분='출금' & 분류에 '적금' 포함)
                 exp_savings = df_ledger[
                     (df_ledger['구분'] == '출금') & 
                     (df_ledger['분류'].str.contains('적금', na=False))
@@ -404,12 +405,12 @@ if st.session_state['menu'] == 'all_status':
     with tab3:
         st.subheader("적금 수익")
         if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
-            # 적금 원금: 구분='출금' AND 분류에 '적금' 포함
+            # 적금 원금
             savings_principal = df_ledger[
                 (df_ledger['구분'] == '출금') & 
                 (df_ledger['분류'].str.contains('적금', na=False))
             ]['금액'].sum()
-            
+            # 적금 현재가
             mask = df_assets[asset_name_col].str.contains('적금', na=False)
             savings_current = df_assets[mask][asset_amount_col].sum()
             st.metric("이자 수익", f"{savings_current - savings_principal:,} 원")
