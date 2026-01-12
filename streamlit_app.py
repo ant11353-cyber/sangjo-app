@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 import base64
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 디자인
+# 1. 페이지 설정 및 디자인 (왼쪽 메뉴 + 다크 테마)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
@@ -15,9 +15,14 @@ def get_base64_of_bin_file(bin_file):
     return base64.b64encode(data).decode()
 
 def set_style(current_menu):
-    # 공통 스타일
+    # 공통 스타일 (다크 모드 베이스)
     common_style = """
     <style>
+    /* 전체 앱 텍스트 기본 색상 (흰색) */
+    .stApp, .stMarkdown, .stText, h1, h2, h3, h4, h5, h6 {
+        color: #e0e0e0 !important;
+    }
+    
     /* 컨텐츠 박스 (투명) */
     .content-box {
         background-color: transparent;
@@ -25,43 +30,58 @@ def set_style(current_menu):
         margin-bottom: 20px;
     }
     
-    /* 버튼 공통 스타일 */
+    /* 버튼 스타일 (달걀형, 다크 스타일) */
     .stButton > button {
         width: 100%;
-        height: 6rem;               /* [수정] 높이를 더 키움 (5rem -> 6rem) */
-        border-radius: 60px;        /* [수정] 더 둥글게 (50px -> 60px) */
-        font-size: 1.5rem;          /* [수정] 글자 크기 확대 (1.3rem -> 1.5rem) */
+        height: 6rem;
+        border-radius: 60px;
+        font-size: 1.5rem;
         font-weight: 600;
         transition: all 0.3s ease;
-        margin-bottom: 15px;        /* [수정] 버튼 간격 조금 더 넓힘 */
+        margin-bottom: 15px;
+        background-color: rgba(30, 30, 30, 0.8); /* 어두운 배경 */
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+    .stButton > button:hover {
+        background-color: rgba(50, 50, 50, 0.9);
+        border-color: #ffcc00;
+        color: #ffcc00;
+        transform: scale(1.02);
     }
     
-    /* 표 내용 가운데 정렬 */
-    [data-testid="stDataFrame"] .stDataFrame {
-        width: 100%;
+    /* 표(DataFrame) 스타일 커스텀 (다크 모드 대응) */
+    [data-testid="stDataFrame"] {
+        background-color: rgba(255, 255, 255, 0.05);
+        padding: 10px;
+        border-radius: 10px;
     }
     [data-testid="stDataFrame"] div[role="columnheader"] {
         display: flex;
         justify-content: center;
         text-align: center;
+        color: #ffffff;
+        font-weight: bold;
     }
     [data-testid="stDataFrame"] div[role="gridcell"] {
         display: flex;
         justify-content: center;
         text-align: center;
+        color: #e0e0e0;
     }
     
-    /* 결론 박스 스타일 */
+    /* 결론 박스 스타일 (다크) */
     .conclusion-box {
-        background-color: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        padding: 20px;
+        background-color: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 25px;
         border-radius: 10px;
-        color: inherit;
+        color: #f0f0f0;
         font-weight: bold;
         font-size: 1.5rem;
         text-align: center;
-        margin-top: 10px;
+        margin-top: 15px;
         line-height: 1.6;
     }
     
@@ -69,15 +89,43 @@ def set_style(current_menu):
     .interest-box {
         font-size: 1.8rem;
         font-weight: bold;
-        color: #4CAF50;
+        color: #81c784; /* 부드러운 밝은 녹색 */
         text-align: center;
         padding: 20px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+    }
+
+    /* 로그인 안내 박스 (다크) */
+    .login-guide-box {
+        background-color: rgba(30, 30, 30, 0.8);
+        padding: 25px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        margin-bottom: 20px;
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .highlight {
+         color: #ffcc00 !important; /* 노란색 강조 */
+         font-weight: bold;
+    }
+    
+    /* 입력창 스타일 */
+    .stTextInput input {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .stTextInput label {
+        color: #ffffff !important;
     }
     </style>
     """
     st.markdown(common_style, unsafe_allow_html=True)
 
-    # 홈 화면 스타일 (어두운 배경)
+    # 홈 화면 (배경 이미지)
     if current_menu == 'home':
         try:
             bin_str = get_base64_of_bin_file('bg.png')
@@ -90,45 +138,11 @@ def set_style(current_menu):
                 background-repeat: no-repeat;
                 background-attachment: fixed;
             }}
+            /* 홈 화면에서는 상단 여백 최소화 */
             .block-container {{
-                background-color: transparent; 
                 padding-top: 0rem;
                 padding-left: 2rem;
                 max-width: 100%;
-            }}
-            .stButton > button {{
-                background-color: rgba(0, 0, 0, 0.6); 
-                color: #f0f0f0;
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
-            }}
-            .stButton > button:hover {{
-                background-color: rgba(0, 0, 0, 0.9);
-                color: #ffcc00;
-                border-color: #ffcc00;
-                transform: scale(1.05);
-            }}
-
-            /* 로그인 안내 박스 스타일 */
-            .login-guide-box {{
-                background-color: rgba(255, 255, 255, 0.15);
-                padding: 25px;
-                border-radius: 15px;
-                text-align: center;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                margin-bottom: 20px;
-                color: #ffffff;
-                border: 1px solid rgba(255, 255, 255, 0.1);
-            }}
-            .login-guide-box h3 {{
-                color: #ffffff !important;
-            }}
-            .highlight {{
-                 color: #ffcc00 !important;
-                 font-weight: bold;
-            }}
-            .stTextInput label {{
-                color: #ffffff !important;
             }}
             </style>
             """
@@ -136,37 +150,13 @@ def set_style(current_menu):
         except FileNotFoundError:
             st.error("배경화면 파일(bg.png)을 찾을 수 없습니다.")
     
-    # 상세 화면 스타일
+    # 상세 화면 (어두운 배경색)
     else:
         detail_style = """
         <style>
         .stApp {
             background-image: none !important;
-            background-color: #f0f2f6;
-        }
-        .stButton > button {
-            background-color: #ffffff;
-            color: #31333F;
-            border: 1px solid #d6d6d8;
-        }
-        .stButton > button:hover {
-            border-color: #ff4b4b;
-            color: #ff4b4b;
-        }
-        /* 상세 화면 로그인 안내 박스 */
-        .login-guide-box {
-            background-color: #ffffff;
-            padding: 25px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-            color: #333;
-            border: 1px solid #eee;
-        }
-        .highlight {
-                 color: #d32f2f !important;
-                 font-weight: bold;
+            background-color: #121212 !important; /* 아주 어두운 검회색 */
         }
         </style>
         """
@@ -217,13 +207,13 @@ def get_dues_calc_info():
     return ref_date, months_passed
 
 # -----------------------------------------------------------------------------
-# 3. 화면 구성 (홈 화면) - [수정됨: 메뉴 오른쪽 배치]
+# 3. 화면 구성 (홈 화면) - [수정됨: 메뉴 왼쪽 배치]
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'home':
-    # [수정] 왼쪽 여백(4) : 오른쪽 메뉴(1) 비율로 변경하여 메뉴를 오른쪽으로 보냄
-    left_col, right_col = st.columns([4, 1.2]) 
+    # 왼쪽(메뉴 1) : 오른쪽(여백 4) 비율
+    left_col, right_col = st.columns([1.2, 4])
     
-    with right_col:
+    with left_col:
         # 화면 중간쯤에 오도록 빈 공간 추가
         st.markdown("<div style='height: 30vh;'></div>", unsafe_allow_html=True)
         
@@ -260,11 +250,11 @@ if st.session_state['menu'] == 'personal_status':
     spacer_left, col_center, spacer_right = st.columns([1, 2, 1])
     
     with col_center:
-        # 로그인 안내 박스
+        # 로그인 안내 박스 (다크 테마)
         st.markdown(
             """
             <div class="login-guide-box">
-                <h3 style="margin-top: 0;">🔑 아이디 확인</h3>
+                <h3 style="margin-top: 0; color: white;">🔑 아이디 확인</h3>
                 <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 5px;">
                     본인의 이메일 아이디 중 <b>아이디만</b> 입력해주세요.
                 </p>
@@ -297,7 +287,9 @@ if st.session_state['menu'] == 'personal_status':
             if not df_ledger.empty:
                 if '금액' in df_ledger.columns:
                     df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
+                    # 입금
                     my_deposit = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == user_name)]['금액'].sum()
+                    # 지출
                     my_condolence_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금') & (df_ledger['내용'] == user_name)]['금액'].sum()
                     my_wreath_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환') & (df_ledger['내용'] == user_name)]['금액'].sum()
 
@@ -361,6 +353,7 @@ if st.session_state['menu'] == 'all_status':
     total_due_target_per_person = 1000000 + (months_passed * 30000)
     
     with tab1:
+        # [1] 전체 입금액
         total_paid_sum = 0
         df_display = pd.DataFrame()
         
@@ -411,7 +404,7 @@ if st.session_state['menu'] == 'all_status':
             
         st.divider()
         
-        # 2. 지출액
+        # [2] 지출액
         exp_total = 0
         df_exp = pd.DataFrame()
         
@@ -441,7 +434,7 @@ if st.session_state['menu'] == 'all_status':
         
         st.divider()
 
-        # 3. 분석적 검토
+        # [3] 분석적 검토
         real_balance = 0
         if asset_amount_col and asset_name_col:
             try: 
