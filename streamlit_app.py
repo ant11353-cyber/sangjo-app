@@ -414,23 +414,24 @@ if st.session_state['menu'] == 'all_status':
 
     with tab2:
         st.subheader("보유 자산")
-        # [수정] 4개 열 모두 보여주기
         if not df_assets.empty:
-            # 합계(총자산) 계산용
             total_asset_val = 0
             if asset_amount_col:
-                total_asset_val = df_assets[asset_amount_col].sum()
+                # [수정] 합계 계산 시 '합계' 또는 '소계' 등이 포함된 행은 제외하고 계산
+                if asset_name_col:
+                    mask = ~df_assets[asset_name_col].astype(str).str.contains('합계', na=False)
+                    total_asset_val = df_assets[mask][asset_amount_col].sum()
+                else:
+                    total_asset_val = df_assets[asset_amount_col].sum()
                 
-                # 표시용 데이터프레임 복사
+                # 표시용 복사본
                 df_assets_disp = df_assets.copy()
-                # 금액 컬럼만 콤마 포맷 적용 (나머지 열은 그대로)
                 df_assets_disp[asset_amount_col] = df_assets_disp[asset_amount_col].apply(format_comma)
                 
-                # 전체 데이터프레임 표시 (모든 열 포함)
                 st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
                 st.metric("총 자산", f"{format_comma(total_asset_val)} 원")
             else:
-                # 금액 컬럼을 못 찾았을 경우 그냥 다 보여줌
+                # 금액 열을 못 찾으면 있는 그대로 표시
                 st.dataframe(df_assets, use_container_width=True, hide_index=True)
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
