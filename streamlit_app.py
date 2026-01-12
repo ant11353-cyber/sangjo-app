@@ -232,7 +232,9 @@ if st.session_state['menu'] == 'personal_status':
             if not df_ledger.empty:
                 if '금액' in df_ledger.columns:
                     df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
+                    # 입금
                     my_deposit = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == user_name)]['금액'].sum()
+                    # 지출
                     my_condolence_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금') & (df_ledger['내용'] == user_name)]['금액'].sum()
                     my_wreath_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환') & (df_ledger['내용'] == user_name)]['금액'].sum()
 
@@ -436,26 +438,29 @@ if st.session_state['menu'] == 'all_status':
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
 
-    # [수정] 3. 이자 분석 섹션 재구성
+    # [수정] 3. 이자 분석 섹션
     with tab3:
         if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
             
             # --- 1. 적금가입원금 ---
-            # ledger: 구분='출금' & 분류에 '적금' 포함
+            # '구분' 열에서 '적금'을 포함하는지 확인 (요청 사항)
             target_ledger = df_ledger[
-                (df_ledger['구분'] == '출금') & 
-                (df_ledger['분류'].str.contains('적금', na=False))
+                df_ledger['구분'].str.contains('적금', na=False)
             ].copy()
-            
-            # 날짜 컬럼 찾기 (거래일시)
-            date_col = '날짜' if '날짜' in target_ledger.columns else '거래일시'
             
             principal_sum = target_ledger['금액'].sum()
             
             st.subheader(f"1. 적금가입원금 : {format_comma(principal_sum)} 원")
             
-            # 표시용 표 만들기
-            if date_col in target_ledger.columns:
+            # 날짜 열 찾기 ('거래일시' 우선)
+            date_col = None
+            for col in ['거래일시', '날짜', '일시', 'Date']:
+                if col in target_ledger.columns:
+                    date_col = col
+                    break
+            
+            if date_col:
+                # 보여줄 표 생성: 거래일시, 금액, 내용
                 df_disp_ledger = pd.DataFrame()
                 df_disp_ledger['거래일시'] = target_ledger[date_col]
                 df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
@@ -463,12 +468,12 @@ if st.session_state['menu'] == 'all_status':
                 
                 st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
             else:
-                st.warning("'날짜' 또는 '거래일시' 열을 찾을 수 없습니다.")
+                st.warning("⚠️ 엑셀 파일에서 '거래일시', '날짜', 또는 '일시'라는 열 이름을 찾을 수 없습니다.")
 
             st.divider()
 
             # --- 2. 적금통장가입액(평가액) ---
-            # assets: 항목에 '적금' 포함
+            # 자산(assets) 시트에서 이름에 '적금'이 들어간 항목 찾기
             target_assets = df_assets[
                 df_assets[asset_name_col].str.contains('적금', na=False)
             ].copy()
@@ -477,14 +482,14 @@ if st.session_state['menu'] == 'all_status':
             
             st.subheader(f"2. 적금통장가입액(평가액) : {format_comma(current_val_sum)} 원")
             
-            # 은행 컬럼 찾기
+            # 은행 열 찾기
             bank_col = None
-            for col in ['은행', 'Bank', '금융기관']:
+            for col in ['은행', 'Bank', '금융기관', '은행명']:
                 if col in df_assets.columns:
                     bank_col = col
                     break
             
-            # 표시용 표 만들기
+            # 보여줄 표 생성: 구분, 은행, 잔액
             df_disp_assets = pd.DataFrame()
             df_disp_assets['구분'] = target_assets[asset_name_col]
             df_disp_assets['은행'] = target_assets[bank_col] if bank_col else '-'
