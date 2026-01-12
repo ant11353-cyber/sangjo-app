@@ -28,27 +28,14 @@ def set_style(current_menu):
         margin-left: auto;
         margin-right: auto;
     }}
+    /* 버튼 스타일 (달걀형 타원) */
     .stButton > button {{
         width: 100%;
-        height: 4rem;
-        border-radius: 8px;
-        font-size: 1.2rem;
+        height: 5rem;               /* 버튼 높이 키움 */
+        border-radius: 50px;        /* 둥근 모서리 (달걀형) */
+        font-size: 1.3rem;          /* 글자 크기 키움 */
         font-weight: 600;
         transition: all 0.3s ease;
-    }}
-    /* 회칙 내용 스타일 */
-    .rule-content {{
-        font-size: 1.1rem;
-        line-height: 1.7;
-        color: #444;
-        margin-bottom: 15px;
-        padding-left: 5px;
-    }}
-    /* 회칙 제목 스타일 */
-    .rule-header {{
-        color: #1e3a8a; /* 짙은 파란색 */
-        font-weight: bold;
-        margin-top: 20px;
         margin-bottom: 10px;
     }}
     </style>
@@ -73,6 +60,7 @@ def set_style(current_menu):
                 padding-left: 2rem;
                 max-width: 100%;
             }}
+            /* 홈 화면 버튼 스타일 */
             .stButton > button {{
                 background-color: rgba(0, 0, 0, 0.6); 
                 color: #f0f0f0;
@@ -83,7 +71,7 @@ def set_style(current_menu):
                 background-color: rgba(0, 0, 0, 0.9);
                 color: #ffcc00;
                 border-color: #ffcc00;
-                transform: scale(1.02);
+                transform: scale(1.05);
             }}
             </style>
             """
@@ -97,6 +85,7 @@ def set_style(current_menu):
             background-image: none !important;
             background-color: #f0f2f6;
         }}
+        /* 상세 화면 버튼 스타일 */
         .stButton > button {{
             background-color: #ffffff;
             color: #31333F;
@@ -154,7 +143,7 @@ def get_dues_calc_info():
 if st.session_state['menu'] == 'home':
     left_col, right_col = st.columns([1, 4])
     with left_col:
-        st.markdown("<div style='height: 35vh;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 30vh;'></div>", unsafe_allow_html=True)
         
         if st.button("🚪 회원 전체 현황"):
             st.session_state['menu'] = 'all_status'
@@ -241,10 +230,11 @@ if st.session_state['menu'] == 'personal_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 5. 기능: 회원 전체 현황
+# 5. 기능: 회원 전체 현황 (명칭 변경 적용)
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'all_status':
-    render_header("📊 회원 전체 및 자산 현황")
+    # [수정 1] 상단 제목 변경
+    render_header("📊 회원전체현황")
     
     df_members = load_data("members")
     df_ledger = load_data("ledger")
@@ -270,7 +260,8 @@ if st.session_state['menu'] == 'all_status':
     if not df_assets.empty and asset_amount_col:
         df_assets[asset_amount_col] = df_assets[asset_amount_col].apply(safe_int)
 
-    tab1, tab2, tab3 = st.tabs(["입금 분석", "자산 현황", "이자 분석"])
+    # [수정 2] 탭 이름 변경: "입금 분석" -> "분석적검토"
+    tab1, tab2, tab3 = st.tabs(["분석적검토", "자산 현황", "이자 분석"])
     ref_date, months_passed = get_dues_calc_info()
     total_due_target_per_person = 1000000 + (months_passed * 30000)
     
@@ -326,7 +317,9 @@ if st.session_state['menu'] == 'all_status':
             )
             
             st.divider()
-            st.subheader("2. 지출 및 잔액 분석")
+            
+            # [수정 3] 섹션 제목 변경
+            st.subheader("2. 회비통장지출액")
             
             if '금액' in df_ledger.columns:
                 exp_condolence = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류']=='조의금')]['금액'].sum()
@@ -378,7 +371,7 @@ if st.session_state['menu'] == 'all_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 6. 기능: 회칙 (수정됨: 제목 괄호 처리)
+# 6. 기능: 회칙
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'rules':
     render_header("📜 회칙 및 규정")
@@ -391,10 +384,8 @@ if st.session_state['menu'] == 'rules':
         
         for idx, row in df_rules.iterrows():
             article = row.get('조항', '')
-            # 제목(또는 항목) 컬럼이 있으면 가져와서 괄호 안에 넣음
             title = row.get('제목', row.get('항목', ''))
             
-            # title이 있고, 'nan'이 아니면 포맷팅
             if title and str(title).lower() != 'nan':
                 header_text = f"{article}({title})"
             else:
