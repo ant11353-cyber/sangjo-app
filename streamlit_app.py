@@ -28,7 +28,6 @@ def set_style(current_menu):
         margin-left: auto;
         margin-right: auto;
     }}
-    /* 버튼 스타일 (달걀형 타원) */
     .stButton > button {{
         width: 100%;
         height: 5rem;
@@ -38,7 +37,6 @@ def set_style(current_menu):
         transition: all 0.3s ease;
         margin-bottom: 10px;
     }}
-    /* 표 헤더 정렬 */
     th {{
         text-align: center !important;
     }}
@@ -146,7 +144,6 @@ if st.session_state['menu'] == 'home':
     left_col, right_col = st.columns([1, 4])
     with left_col:
         st.markdown("<div style='height: 30vh;'></div>", unsafe_allow_html=True)
-        
         if st.button("🚪 회원 전체 현황"):
             st.session_state['menu'] = 'all_status'
             st.rerun()
@@ -232,7 +229,7 @@ if st.session_state['menu'] == 'personal_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 5. 기능: 회원 전체 현황 (요청사항 반영)
+# 5. 기능: 회원 전체 현황
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'all_status':
     render_header("📊 회원전체현황")
@@ -241,25 +238,29 @@ if st.session_state['menu'] == 'all_status':
     df_ledger = load_data("ledger")
     df_assets = load_data("assets")
     
+    # 데이터 전처리: 공백 제거 (매우 중요!)
+    if not df_ledger.empty:
+        if '구분' in df_ledger.columns:
+            df_ledger['구분'] = df_ledger['구분'].astype(str).str.strip()
+        if '분류' in df_ledger.columns:
+            df_ledger['분류'] = df_ledger['분류'].astype(str).str.strip()
+        if '금액' in df_ledger.columns:
+            df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
+
+    # 자산 데이터 전처리
     asset_name_col = None
+    asset_amount_col = None
     if not df_assets.empty:
         for col in ['항목', '자산명', '자산', '계좌명', '구분', '내용', 'Asset']:
             if col in df_assets.columns:
                 asset_name_col = col
                 break
-    
-    asset_amount_col = None
-    if not df_assets.empty:
         for col in ['금액', '잔액', '평가액', '자산금액', 'Amount']:
             if col in df_assets.columns:
                 asset_amount_col = col
                 break
-    
-    if not df_ledger.empty and '금액' in df_ledger.columns:
-        df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
-    
-    if not df_assets.empty and asset_amount_col:
-        df_assets[asset_amount_col] = df_assets[asset_amount_col].apply(safe_int)
+        if asset_amount_col:
+            df_assets[asset_amount_col] = df_assets[asset_amount_col].apply(safe_int)
 
     tab1, tab2, tab3 = st.tabs(["분석적검토", "자산 현황", "이자 분석"])
     ref_date, months_passed = get_dues_calc_info()
@@ -272,6 +273,7 @@ if st.session_state['menu'] == 'all_status':
             for index, row in df_members.iterrows():
                 name = row['성명']
                 if '금액' in df_ledger.columns:
+                    # 입금액 계산
                     paid_total = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == name)]['금액'].sum()
                 else:
                     paid_total = 0
@@ -318,17 +320,15 @@ if st.session_state['menu'] == 'all_status':
             
             st.divider()
             
-            # [수정] 2. 회비통장지출액 (표 형식으로 변경)
+            # [수정] 2. 회비통장지출액 (표 형식 + 요청하신 문구 적용)
             st.subheader("2. 회비통장지출액")
             
             if '금액' in df_ledger.columns:
-                # (1) 조의금 합계
+                # (1) 조의금
                 exp_condolence = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류']=='조의금')]['금액'].sum()
-                
-                # (2) 근조화환 합계
+                # (2) 근조화환
                 exp_wreath = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류']=='근조화환')]['금액'].sum()
-                
-                # (3) 회의비등 합계 (조의금, 근조화환, 적금을 제외한 모든 지출)
+                # (3) 회의비등 (조의금, 근조화환, 적금을 제외한 모든 지출 = 회의비, 운영비 등 포함)
                 exp_meeting = df_ledger[
                     (df_ledger['구분']=='지출') & 
                     (~df_ledger['분류'].isin(['조의금', '근조화환'])) & 
@@ -338,13 +338,13 @@ if st.session_state['menu'] == 'all_status':
                 # (4) 합계
                 exp_total = exp_condolence + exp_wreath + exp_meeting
                 
-                # 표 데이터 생성
+                # 표 생성
                 exp_data = {
                     "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 합계"],
                     "내용 설명": [
-                        "회비장부의 지출된 분류의 조의금 합계액",
-                        "회비장부의 지출된 분류의 근조화환 합계액",
-                        "회비장부의 지출된 분류의 회의비등 합계액",
+                        "ledger시트의 분류의 조의금 합계액",
+                        "ledger시트의 분류의 근조화환 합계액",
+                        "ledger시트의 분류의 회의비등 합계액",
                         "=(1)+(2)+(3)"
                     ],
                     "금액": [exp_condolence, exp_wreath, exp_meeting, exp_total]
@@ -356,6 +356,8 @@ if st.session_state['menu'] == 'all_status':
                     use_container_width=True,
                     hide_index=True,
                     column_config={
+                        "지출 항목": st.column_config.TextColumn(width="medium"),
+                        "내용 설명": st.column_config.TextColumn(width="large"),
                         "금액": st.column_config.NumberColumn(format="%d")
                     }
                 )
