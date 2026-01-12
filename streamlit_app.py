@@ -31,12 +31,16 @@ def set_style(current_menu):
     /* 버튼 스타일 (달걀형 타원) */
     .stButton > button {{
         width: 100%;
-        height: 5rem;               /* 버튼 높이 키움 */
-        border-radius: 50px;        /* 둥근 모서리 (달걀형) */
-        font-size: 1.3rem;          /* 글자 크기 키움 */
+        height: 5rem;
+        border-radius: 50px;
+        font-size: 1.3rem;
         font-weight: 600;
         transition: all 0.3s ease;
         margin-bottom: 10px;
+    }}
+    /* 표 헤더 정렬 */
+    th {{
+        text-align: center !important;
     }}
     </style>
     """
@@ -60,7 +64,6 @@ def set_style(current_menu):
                 padding-left: 2rem;
                 max-width: 100%;
             }}
-            /* 홈 화면 버튼 스타일 */
             .stButton > button {{
                 background-color: rgba(0, 0, 0, 0.6); 
                 color: #f0f0f0;
@@ -85,7 +88,6 @@ def set_style(current_menu):
             background-image: none !important;
             background-color: #f0f2f6;
         }}
-        /* 상세 화면 버튼 스타일 */
         .stButton > button {{
             background-color: #ffffff;
             color: #31333F;
@@ -230,10 +232,9 @@ if st.session_state['menu'] == 'personal_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 5. 기능: 회원 전체 현황 (명칭 변경 적용)
+# 5. 기능: 회원 전체 현황 (요청사항 반영)
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'all_status':
-    # [수정 1] 상단 제목 변경
     render_header("📊 회원전체현황")
     
     df_members = load_data("members")
@@ -260,7 +261,6 @@ if st.session_state['menu'] == 'all_status':
     if not df_assets.empty and asset_amount_col:
         df_assets[asset_amount_col] = df_assets[asset_amount_col].apply(safe_int)
 
-    # [수정 2] 탭 이름 변경: "입금 분석" -> "분석적검토"
     tab1, tab2, tab3 = st.tabs(["분석적검토", "자산 현황", "이자 분석"])
     ref_date, months_passed = get_dues_calc_info()
     total_due_target_per_person = 1000000 + (months_passed * 30000)
@@ -318,21 +318,48 @@ if st.session_state['menu'] == 'all_status':
             
             st.divider()
             
-            # [수정 3] 섹션 제목 변경
+            # [수정] 2. 회비통장지출액 (표 형식으로 변경)
             st.subheader("2. 회비통장지출액")
             
             if '금액' in df_ledger.columns:
+                # (1) 조의금 합계
                 exp_condolence = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류']=='조의금')]['금액'].sum()
+                
+                # (2) 근조화환 합계
                 exp_wreath = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류']=='근조화환')]['금액'].sum()
-                exp_meeting = df_ledger[(df_ledger['구분']=='지출') & (~df_ledger['분류'].isin(['조의금', '근조화환'])) & (~df_ledger['분류'].str.contains('적금'))]['금액'].sum()
+                
+                # (3) 회의비등 합계 (조의금, 근조화환, 적금을 제외한 모든 지출)
+                exp_meeting = df_ledger[
+                    (df_ledger['구분']=='지출') & 
+                    (~df_ledger['분류'].isin(['조의금', '근조화환'])) & 
+                    (~df_ledger['분류'].str.contains('적금'))
+                ]['금액'].sum()
+                
+                # (4) 합계
                 exp_total = exp_condolence + exp_wreath + exp_meeting
                 
-                c1, c2, c3, c4 = st.columns(4)
-                c1.metric("조의금", f"{exp_condolence:,}")
-                c2.metric("근조화환", f"{exp_wreath:,}")
-                c3.metric("운영비", f"{exp_meeting:,}")
-                c4.metric("지출합계", f"{exp_total:,}")
+                # 표 데이터 생성
+                exp_data = {
+                    "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 합계"],
+                    "내용 설명": [
+                        "회비장부의 지출된 분류의 조의금 합계액",
+                        "회비장부의 지출된 분류의 근조화환 합계액",
+                        "회비장부의 지출된 분류의 회의비등 합계액",
+                        "=(1)+(2)+(3)"
+                    ],
+                    "금액": [exp_condolence, exp_wreath, exp_meeting, exp_total]
+                }
+                df_exp = pd.DataFrame(exp_data)
                 
+                st.dataframe(
+                    df_exp,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "금액": st.column_config.NumberColumn(format="%d")
+                    }
+                )
+
                 total_income = df_ledger[df_ledger['구분']=='입금']['금액'].sum()
                 exp_savings = df_ledger[(df_ledger['구분']=='지출') & (df_ledger['분류'].str.contains('적금'))]['금액'].sum()
                 expected_balance = total_income - (exp_total + exp_savings)
