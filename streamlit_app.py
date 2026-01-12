@@ -72,6 +72,17 @@ def set_style(current_menu):
         text-align: center;
         padding: 20px;
     }
+    
+    /* [NEW] 로그인 안내 박스 스타일 */
+    .login-guide-box {
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 25px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        color: #333;
+    }
     </style>
     """
     st.markdown(common_style, unsafe_allow_html=True)
@@ -206,12 +217,33 @@ def render_footer():
     st.markdown('</div>', unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 4. 기능: 회원 개인 현황
+# 4. 기능: 회원 개인 현황 (디자인 및 문구 수정)
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'personal_status':
     render_header("🔒 회원 개인 현황")
-    st.info("본인의 이메일 아이디를 입력해주세요.")
-    user_id_input = st.text_input("아이디 입력 (예: hong)", placeholder="이메일 아이디를 입력하세요")
+    
+    # [수정] 화면 중앙 정렬을 위한 컬럼 분할 (좌우 여백 1 : 본문 2 : 좌우 여백 1)
+    spacer_left, col_center, spacer_right = st.columns([1, 2, 1])
+    
+    with col_center:
+        # [수정] 안내 문구 디자인 박스 적용
+        st.markdown(
+            """
+            <div class="login-guide-box">
+                <h3 style="margin-top: 0;">🔑 아이디 확인</h3>
+                <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 5px;">
+                    본인의 이메일 아이디 중 <b>아이디만</b> 입력해주세요.
+                </p>
+                <p style="font-size: 0.95rem; color: #666;">
+                    (예: "abc123@nate.com"이면 <b style="color: #d32f2f;">"abc123"</b>을 입력)
+                </p>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        # [수정] 입력창 라벨 변경 ("아이디입력")
+        user_id_input = st.text_input("아이디입력", placeholder="여기에 아이디를 입력하세요")
     
     if user_id_input:
         df_members = load_data("members")
@@ -264,7 +296,9 @@ if st.session_state['menu'] == 'personal_status':
             elif unpaid == 0: st.success("👉 **완납** 상태입니다.")
             else: st.info(f"👉 **선납액: {format_comma(abs(unpaid))} 원**")
         else:
-            st.error("일치하는 아이디가 없습니다.")
+            with col_center:
+                st.error("일치하는 아이디가 없습니다. 다시 확인해주세요.")
+    
     render_footer()
 
 # -----------------------------------------------------------------------------
@@ -438,58 +472,44 @@ if st.session_state['menu'] == 'all_status':
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
 
-    # [수정] 3. 이자 분석 섹션
     with tab3:
         if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
             
-            # --- 1. 적금가입원금 ---
-            # '구분' 열에서 '적금'을 포함하는지 확인 (요청 사항)
+            # 1. 적금가입원금
             target_ledger = df_ledger[
                 df_ledger['구분'].str.contains('적금', na=False)
             ].copy()
-            
             principal_sum = target_ledger['금액'].sum()
             
             st.subheader(f"1. 적금가입원금 : {format_comma(principal_sum)} 원")
             
-            # 날짜 열 찾기 ('거래일시' 우선)
             date_col = None
             for col in ['거래일시', '날짜', '일시', 'Date']:
-                if col in target_ledger.columns:
-                    date_col = col
-                    break
+                if col in target_ledger.columns: date_col = col; break
             
             if date_col:
-                # 보여줄 표 생성: 거래일시, 금액, 내용
                 df_disp_ledger = pd.DataFrame()
                 df_disp_ledger['거래일시'] = target_ledger[date_col]
                 df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
                 df_disp_ledger['내용'] = target_ledger['내용']
-                
                 st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
             else:
-                st.warning("⚠️ 엑셀 파일에서 '거래일시', '날짜', 또는 '일시'라는 열 이름을 찾을 수 없습니다.")
+                st.warning("⚠️ '거래일시' 열을 찾을 수 없습니다.")
 
             st.divider()
 
-            # --- 2. 적금통장가입액(평가액) ---
-            # 자산(assets) 시트에서 이름에 '적금'이 들어간 항목 찾기
+            # 2. 적금통장가입액
             target_assets = df_assets[
                 df_assets[asset_name_col].str.contains('적금', na=False)
             ].copy()
-            
             current_val_sum = target_assets[asset_amount_col].sum()
             
             st.subheader(f"2. 적금통장가입액(평가액) : {format_comma(current_val_sum)} 원")
             
-            # 은행 열 찾기
             bank_col = None
             for col in ['은행', 'Bank', '금융기관', '은행명']:
-                if col in df_assets.columns:
-                    bank_col = col
-                    break
+                if col in df_assets.columns: bank_col = col; break
             
-            # 보여줄 표 생성: 구분, 은행, 잔액
             df_disp_assets = pd.DataFrame()
             df_disp_assets['구분'] = target_assets[asset_name_col]
             df_disp_assets['은행'] = target_assets[bank_col] if bank_col else '-'
@@ -499,14 +519,14 @@ if st.session_state['menu'] == 'all_status':
 
             st.divider()
 
-            # --- 3. 이자발생누적액 ---
+            # 3. 이자발생누적액
             interest = current_val_sum - principal_sum
             st.subheader(f"3. 이자발생누적액(2-1)")
             st.markdown(f"<div class='interest-box'>💰 {format_comma(interest)} 원</div>", unsafe_allow_html=True)
 
             st.divider()
 
-            # --- 4. 총평 ---
+            # 4. 총평
             st.subheader("4. 총평")
             st.markdown(
                 """
