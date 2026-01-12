@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 import base64
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 디자인
+# 1. 페이지 설정 및 디자인 (CSS 수정됨)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
@@ -17,14 +17,25 @@ def get_base64_of_bin_file(bin_file):
 def set_style(current_menu):
     common_style = """
     <style>
-    /* 컨텐츠 박스 */
+    /* 1. 데이터프레임(표) 헤더 가운데 정렬 */
+    div[data-testid="stDataFrame"] div[role="columnheader"] {
+        justify-content: center;
+        text-align: center;
+    }
+    /* 2. 데이터프레임(표) 셀 내용 가운데 정렬 */
+    div[data-testid="stDataFrame"] div[role="gridcell"] {
+        justify-content: center;
+        text-align: center;
+    }
+    
+    /* 3. 컨텐츠 박스 스타일 (투명) */
     .content-box {
         background-color: transparent;
         padding: 20px 0px;
         margin-bottom: 20px;
     }
     
-    /* 버튼 스타일 */
+    /* 4. 버튼 스타일 (달걀형) */
     .stButton > button {
         width: 100%;
         height: 5rem;
@@ -35,22 +46,7 @@ def set_style(current_menu):
         margin-bottom: 10px;
     }
     
-    /* 표 내용 가운데 정렬 */
-    [data-testid="stDataFrame"] .stDataFrame {
-        width: 100%;
-    }
-    [data-testid="stDataFrame"] div[role="columnheader"] {
-        display: flex;
-        justify-content: center;
-        text-align: center;
-    }
-    [data-testid="stDataFrame"] div[role="gridcell"] {
-        display: flex;
-        justify-content: center;
-        text-align: center;
-    }
-    
-    /* 결론 박스 스타일 */
+    /* 5. 결론 박스 스타일 (글자 크기 확대) */
     .conclusion-box {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.3);
@@ -58,14 +54,15 @@ def set_style(current_menu):
         border-radius: 10px;
         color: inherit;
         font-weight: bold;
-        font-size: 1.1rem;
+        font-size: 1.5rem;  /* [수정] 제목 크기(subheader)와 맞춤 */
         text-align: center;
         margin-top: 10px;
+        line-height: 1.6;
     }
     
-    /* 섹션 제목 강조 스타일 (금액 부분 색상 변경 등 가능) */
+    /* 섹션 제목 강조 스타일 */
     .highlight-sum {
-        color: #ff4b4b; /* 스트림릿 기본 붉은색 계열 */
+        color: #ff4b4b;
         font-weight: bold;
     }
     </style>
@@ -271,7 +268,6 @@ if st.session_state['menu'] == 'all_status':
     df_ledger = load_data("ledger")
     df_assets = load_data("assets")
     
-    # 전처리
     if not df_ledger.empty:
         if '구분' in df_ledger.columns: df_ledger['구분'] = df_ledger['구분'].astype(str).str.strip()
         if '분류' in df_ledger.columns: df_ledger['분류'] = df_ledger['분류'].astype(str).str.strip()
@@ -291,7 +287,7 @@ if st.session_state['menu'] == 'all_status':
     total_due_target_per_person = 1000000 + (months_passed * 30000)
     
     with tab1:
-        # [계산 1] 전체 입금액 계산 (먼저 수행)
+        # [계산 1] 전체 입금액
         total_paid_sum = 0
         df_display = pd.DataFrame()
         
@@ -317,7 +313,7 @@ if st.session_state['menu'] == 'all_status':
             df_analysis = pd.DataFrame(analysis_data)
             
             total_due = df_analysis['A.납부할금액'].sum()
-            total_paid_sum = df_analysis['B.납부한금액'].sum() # 여기서 구한 값이 제목에 들어감
+            total_paid_sum = df_analysis['B.납부한금액'].sum()
             total_diff = df_analysis['차이금액(=A-B)'].sum()
             
             total_row = pd.DataFrame([{
@@ -329,13 +325,12 @@ if st.session_state['menu'] == 'all_status':
             }])
             df_display = pd.concat([df_analysis, total_row], ignore_index=True)
             
-            # [출력 1] 제목 옆에 금액 표시
             st.subheader(f"1. 전체 입금내역 분석 : {format_comma(total_paid_sum)} 원")
             
             cols_to_comma = ["A.납부할금액", "B.납부한금액", "차이금액(=A-B)"]
             for col in cols_to_comma:
                 df_display[col] = df_display[col].apply(format_comma)
-            
+
             st.dataframe(df_display, use_container_width=True, hide_index=True)
         else:
             st.subheader("1. 전체 입금내역 분석")
@@ -343,7 +338,7 @@ if st.session_state['menu'] == 'all_status':
             
         st.divider()
         
-        # [계산 2] 지출액 계산
+        # [계산 2] 지출액
         exp_total = 0
         df_exp = pd.DataFrame()
         
@@ -352,7 +347,7 @@ if st.session_state['menu'] == 'all_status':
             exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
             exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
             
-            exp_total = exp_condolence + exp_wreath + exp_meeting # 합계
+            exp_total = exp_condolence + exp_wreath + exp_meeting
             
             exp_data = {
                 "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 합계"],
@@ -367,7 +362,6 @@ if st.session_state['menu'] == 'all_status':
             df_exp = pd.DataFrame(exp_data)
             df_exp['금액'] = df_exp['금액'].apply(format_comma)
 
-        # [출력 2] 제목 옆에 금액 표시
         st.subheader(f"2. 회비통장지출액 : {format_comma(exp_total)} 원")
         if not df_exp.empty:
             st.dataframe(df_exp, use_container_width=True, hide_index=True)
@@ -398,7 +392,6 @@ if st.session_state['menu'] == 'all_status':
         df_review = pd.DataFrame(review_data)
         df_review['금액'] = df_review['금액'].apply(format_comma)
 
-        # [출력 3] 제목 옆에 차이 금액 표시
         st.subheader(f"3. 분석적검토 (차이: {format_comma(diff_final)} 원)")
         st.dataframe(df_review, use_container_width=True, hide_index=True)
 
