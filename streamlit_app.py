@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 import base64
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 디자인 (디자인 톤다운 적용)
+# 1. 페이지 설정 및 디자인 (전체 다크 테마 적용)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
@@ -15,9 +15,14 @@ def get_base64_of_bin_file(bin_file):
     return base64.b64encode(data).decode()
 
 def set_style(current_menu):
-    # 공통 스타일
+    # 공통 스타일 (다크 모드 기반)
     common_style = """
     <style>
+    /* 전체 앱 텍스트 색상 기본값 설정 (밝은 회색) */
+    .stApp {
+        color: #e0e0e0;
+    }
+    
     /* 컨텐츠 박스 (투명) */
     .content-box {
         background-color: transparent;
@@ -25,7 +30,7 @@ def set_style(current_menu):
         margin-bottom: 20px;
     }
     
-    /* 버튼 공통 스타일 */
+    /* 버튼 공통 스타일 (다크 톤) */
     .stButton > button {
         width: 100%;
         height: 5rem;
@@ -34,9 +39,17 @@ def set_style(current_menu):
         font-weight: 600;
         transition: all 0.3s ease;
         margin-bottom: 10px;
+        background-color: rgba(255, 255, 255, 0.05); /* 아주 연한 밝은색 틴트 */
+        color: #f0f0f0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .stButton > button:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: #ffcc00;
+        color: #ffcc00;
     }
     
-    /* 표 내용 가운데 정렬 */
+    /* 표 내용 가운데 정렬 및 다크 테마 텍스트 색상 */
     [data-testid="stDataFrame"] .stDataFrame {
         width: 100%;
     }
@@ -44,20 +57,22 @@ def set_style(current_menu):
         display: flex;
         justify-content: center;
         text-align: center;
+        color: #e0e0e0; /* 헤더 글자색 */
     }
     [data-testid="stDataFrame"] div[role="gridcell"] {
         display: flex;
         justify-content: center;
         text-align: center;
+        color: #e0e0e0; /* 셀 글자색 */
     }
     
-    /* 결론 박스 스타일 */
+    /* 결론 박스 스타일 (다크 버전) */
     .conclusion-box {
-        background-color: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        background-color: rgba(0, 0, 0, 0.3); /* 어두운 반투명 배경 */
+        border: 1px solid rgba(255, 255, 255, 0.1); /* 연한 테두리 */
         padding: 20px;
         border-radius: 10px;
-        color: inherit;
+        color: #f0f0f0;
         font-weight: bold;
         font-size: 1.5rem;
         text-align: center;
@@ -69,15 +84,27 @@ def set_style(current_menu):
     .interest-box {
         font-size: 1.8rem;
         font-weight: bold;
-        color: #4CAF50;
+        color: #66bb6a; /* 다크 모드에 어울리는 밝은 녹색 */
         text-align: center;
         padding: 20px;
+    }
+
+    /* 입력창 라벨 및 텍스트 색상 강제 지정 */
+    .stTextInput label, .stTextInput input {
+        color: #ffffff !important;
+    }
+    /* 탭 스타일 조정 */
+    .stTabs [data-baseweb="tab"] {
+        color: #a0a0a0;
+    }
+    .stTabs [aria-selected="true"] {
+        color: #ffffff !important;
     }
     </style>
     """
     st.markdown(common_style, unsafe_allow_html=True)
 
-    # 홈 화면 스타일 (어두운 배경)
+    # 홈 화면 스타일 (배경이미지 O)
     if current_menu == 'home':
         try:
             bin_str = get_base64_of_bin_file('bg.png')
@@ -90,47 +117,29 @@ def set_style(current_menu):
                 background-repeat: no-repeat;
                 background-attachment: fixed;
             }}
-            .block-container {{
-                background-color: transparent; 
-                padding-top: 0rem;
-                padding-left: 2rem;
-                max-width: 100%;
-            }}
+            /* 홈 화면 버튼 스타일 강화 */
             .stButton > button {{
-                background-color: rgba(0, 0, 0, 0.6); 
-                color: #f0f0f0;
-                border: 1px solid rgba(255, 255, 255, 0.3);
+                background-color: rgba(0, 0, 0, 0.7) !important;
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
             }}
-            .stButton > button:hover {{
-                background-color: rgba(0, 0, 0, 0.9);
-                color: #ffcc00;
-                border-color: #ffcc00;
-                transform: scale(1.05);
-            }}
 
-            /* [수정] 로그인 안내 박스 스타일 (톤다운 및 조화롭게 변경) */
+            /* [수정] 로그인 안내 박스 (완전 어두운 계열로 변경) */
             .login-guide-box {{
-                background-color: rgba(255, 255, 255, 0.15); /* 투명도 높임 (어둡게) */
+                background-color: rgba(0, 0, 0, 0.6); /* 어두운 반투명 검정 */
                 padding: 25px;
                 border-radius: 15px;
                 text-align: center;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.4);
                 margin-bottom: 20px;
-                color: #ffffff; /* 글자색 흰색으로 변경 */
-                border: 1px solid rgba(255, 255, 255, 0.1); /* 은은한 테두리 추가 */
+                color: #ffffff;
+                border: 1px solid rgba(255, 255, 255, 0.1);
             }}
             .login-guide-box h3 {{
-                color: #ffffff !important; /* 제목도 흰색 */
-            }}
-            /* 강조 문구 색상 변경 (노란색 계열) */
-            .highlight {{
-                 color: #ffcc00 !important;
-                 font-weight: bold;
-            }}
-            /* 입력창 라벨 색상 흰색으로 */
-            .stTextInput label {{
                 color: #ffffff !important;
+            }}
+            .highlight {{
+                 color: #ffcc00 !important; /* 노란색 강조 */
+                 font-weight: bold;
             }}
             </style>
             """
@@ -138,36 +147,37 @@ def set_style(current_menu):
         except FileNotFoundError:
             st.error("배경화면 파일(bg.png)을 찾을 수 없습니다.")
     
-    # 상세 화면 스타일 (밝은 배경)
+    # 상세 화면 스타일 (배경이미지 X -> 어두운 배경색 적용)
     else:
         detail_style = """
         <style>
         .stApp {
             background-image: none !important;
-            background-color: #f0f2f6;
+            background-color: #121212 !important; /* 아주 어두운 배경색 */
         }
+        /* 상세 화면 버튼 스타일 */
         .stButton > button {
-            background-color: #ffffff;
-            color: #31333F;
-            border: 1px solid #d6d6d8;
+             background-color: #1e1e1e; /* 어두운 버튼 배경 */
+             border: 1px solid #333;
         }
-        .stButton > button:hover {
+         .stButton > button:hover {
             border-color: #ff4b4b;
             color: #ff4b4b;
         }
-        /* 상세 화면에서는 원래대로 밝은 박스 유지 (필요시 수정 가능) */
+
+        /* [수정] 상세 화면 로그인 안내 박스도 어둡게 */
         .login-guide-box {
-            background-color: #ffffff;
+            background-color: #1e1e1e;
             padding: 25px;
             border-radius: 15px;
             text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             margin-bottom: 20px;
-            color: #333;
-            border: 1px solid #eee;
+            color: #e0e0e0;
+            border: 1px solid #333;
         }
         .highlight {
-                 color: #d32f2f !important;
+                 color: #ff4b4b !important; /* 붉은색 강조 */
                  font-weight: bold;
         }
         </style>
@@ -258,7 +268,7 @@ if st.session_state['menu'] == 'personal_status':
     spacer_left, col_center, spacer_right = st.columns([1, 2, 1])
     
     with col_center:
-        # 로그인 안내 박스 (HTML 구조는 그대로, CSS로 디자인 변경됨)
+        # 로그인 안내 박스 (CSS로 다크 테마 적용됨)
         st.markdown(
             """
             <div class="login-guide-box">
