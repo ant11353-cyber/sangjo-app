@@ -269,11 +269,18 @@ if st.session_state['menu'] == 'all_status':
     
     with tab1:
         st.subheader("1. 전체 입금내역 분석")
+        
+        # 변수 초기화
+        total_paid_sum = 0
+        exp_total = 0
+        real_balance = 0
+
         if not df_members.empty and not df_ledger.empty:
             analysis_data = []
             for index, row in df_members.iterrows():
                 name = row['성명']
                 if '금액' in df_ledger.columns:
+                    # 입금액 계산
                     paid_total = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == name)]['금액'].sum()
                 else:
                     paid_total = 0
@@ -292,13 +299,13 @@ if st.session_state['menu'] == 'all_status':
             df_analysis = pd.DataFrame(analysis_data)
             
             total_due = df_analysis['A.납부할금액'].sum()
-            total_paid = df_analysis['B.납부한금액'].sum()
+            total_paid_sum = df_analysis['B.납부한금액'].sum() # A값 계산용
             total_diff = df_analysis['차이금액(=A-B)'].sum()
             
             total_row = pd.DataFrame([{
                 "회원명": "합계",
                 "A.납부할금액": total_due,
-                "B.납부한금액": total_paid,
+                "B.납부한금액": total_paid_sum,
                 "차이금액(=A-B)": total_diff,
                 "상태": "-"
             }])
@@ -320,30 +327,15 @@ if st.session_state['menu'] == 'all_status':
             
             st.divider()
             
-            # [수정] 2. 회비통장지출액 (로직 및 설명 수정)
+            # 2. 회비통장지출액
             st.subheader("2. 회비통장지출액")
             
             if '금액' in df_ledger.columns:
-                # (1) 조의금: 구분='출금' & 분류='조의금'
-                exp_condolence = df_ledger[
-                    (df_ledger['구분'] == '출금') & 
-                    (df_ledger['분류'] == '조의금')
-                ]['금액'].sum()
+                exp_condolence = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금')]['금액'].sum()
+                exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
+                exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
                 
-                # (2) 근조화환: 구분='출금' & 분류='근조화환'
-                exp_wreath = df_ledger[
-                    (df_ledger['구분'] == '출금') & 
-                    (df_ledger['분류'] == '근조화환')
-                ]['금액'].sum()
-                
-                # (3) 회의비등: 구분='출금' & 분류='회의비외' (사용자 요청: "회의비외" 합계)
-                exp_meeting = df_ledger[
-                    (df_ledger['구분'] == '출금') & 
-                    (df_ledger['분류'] == '회의비외')
-                ]['금액'].sum()
-                
-                # (4) 합계
-                exp_total = exp_condolence + exp_wreath + exp_meeting
+                exp_total = exp_condolence + exp_wreath + exp_meeting # 지출 합계
                 
                 exp_data = {
                     "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 합계"],
@@ -367,30 +359,49 @@ if st.session_state['menu'] == 'all_status':
                         "금액": st.column_config.NumberColumn(format="%d")
                     }
                 )
+            
+            st.divider()
 
-                # 예상 잔액 계산 (수입 - 지출 - 적금불입액)
-                total_income = df_ledger[df_ledger['구분']=='입금']['금액'].sum()
-                
-                # 적금 불입액 (구분='출금' & 분류에 '적금' 포함)
-                exp_savings = df_ledger[
-                    (df_ledger['구분'] == '출금') & 
-                    (df_ledger['분류'].str.contains('적금', na=False))
-                ]['금액'].sum()
-                
-                expected_balance = total_income - (exp_total + exp_savings)
-            else:
-                expected_balance = 0
+            # [추가] 3. 분석적 검토
+            st.subheader("3. 분석적검토")
 
+            # 자산 잔액 가져오기 (B값)
             if asset_amount_col and asset_name_col:
                 try: 
                     mask = df_assets[asset_name_col].str.contains('회비통장', na=False)
-                    if mask.any(): real_balance = df_assets[mask][asset_amount_col].iloc[0]
-                    else: real_balance = 0
+                    if mask.any(): 
+                        real_balance = df_assets[mask][asset_amount_col].iloc[0]
+                    else: 
+                        real_balance = 0
                 except: real_balance = 0
-            else:
-                real_balance = 0
             
-            st.info(f"💰 통장 잔액 차이: {expected_balance - real_balance:,} 원 (이자수익 등)")
+            # A값: 입금합계 - 지출합계
+            val_a = total_paid_sum - exp_total
+            # B값: 실제 잔액
+            val_b = real_balance
+            
+            review_data = {
+                "구분": ["A. 장부상 잔액", "B. 실제 통장 잔액", "차이 (A-B)"],
+                "산출 근거": [
+                    "전체 입금액 합계 - 회비통장 지출 총계",
+                    "자산(assets) 시트의 회비통장 잔액",
+                    "이자수익 및 적금불입액 등 차이"
+                ],
+                "금액": [val_a, val_b, val_a - val_b]
+            }
+            df_review = pd.DataFrame(review_data)
+            
+            st.dataframe(
+                df_review,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "구분": st.column_config.TextColumn(width="medium"),
+                    "산출 근거": st.column_config.TextColumn(width="large"),
+                    "금액": st.column_config.NumberColumn(format="%d")
+                }
+            )
+
         else:
             st.warning("데이터가 없거나 불러오지 못했습니다.")
 
