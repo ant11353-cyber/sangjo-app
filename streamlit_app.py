@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 import base64
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 디자인 (CSS 수정됨)
+# 1. 페이지 설정 및 디자인
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
@@ -17,25 +17,14 @@ def get_base64_of_bin_file(bin_file):
 def set_style(current_menu):
     common_style = """
     <style>
-    /* 1. 데이터프레임(표) 헤더 가운데 정렬 */
-    div[data-testid="stDataFrame"] div[role="columnheader"] {
-        justify-content: center;
-        text-align: center;
-    }
-    /* 2. 데이터프레임(표) 셀 내용 가운데 정렬 */
-    div[data-testid="stDataFrame"] div[role="gridcell"] {
-        justify-content: center;
-        text-align: center;
-    }
-    
-    /* 3. 컨텐츠 박스 스타일 (투명) */
+    /* 컨텐츠 박스 */
     .content-box {
         background-color: transparent;
         padding: 20px 0px;
         margin-bottom: 20px;
     }
     
-    /* 4. 버튼 스타일 (달걀형) */
+    /* 버튼 스타일 */
     .stButton > button {
         width: 100%;
         height: 5rem;
@@ -46,7 +35,22 @@ def set_style(current_menu):
         margin-bottom: 10px;
     }
     
-    /* 5. 결론 박스 스타일 (글자 크기 확대) */
+    /* 표 내용 가운데 정렬 */
+    [data-testid="stDataFrame"] .stDataFrame {
+        width: 100%;
+    }
+    [data-testid="stDataFrame"] div[role="columnheader"] {
+        display: flex;
+        justify-content: center;
+        text-align: center;
+    }
+    [data-testid="stDataFrame"] div[role="gridcell"] {
+        display: flex;
+        justify-content: center;
+        text-align: center;
+    }
+    
+    /* 결론 박스 스타일 */
     .conclusion-box {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.3);
@@ -54,7 +58,7 @@ def set_style(current_menu):
         border-radius: 10px;
         color: inherit;
         font-weight: bold;
-        font-size: 1.5rem;  /* [수정] 제목 크기(subheader)와 맞춤 */
+        font-size: 1.5rem;
         text-align: center;
         margin-top: 10px;
         line-height: 1.6;
@@ -62,7 +66,7 @@ def set_style(current_menu):
     
     /* 섹션 제목 강조 스타일 */
     .highlight-sum {
-        color: #ff4b4b;
+        color: #ff4b4b; 
         font-weight: bold;
     }
     </style>
@@ -410,13 +414,24 @@ if st.session_state['menu'] == 'all_status':
 
     with tab2:
         st.subheader("보유 자산")
-        if not df_assets.empty and asset_amount_col:
-            total_asset_val = df_assets[asset_amount_col].sum()
-            df_assets_disp = df_assets.copy()
-            df_assets_disp[asset_amount_col] = df_assets_disp[asset_amount_col].apply(format_comma)
-            
-            st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
-            st.metric("총 자산", f"{format_comma(total_asset_val)} 원")
+        # [수정] 4개 열 모두 보여주기
+        if not df_assets.empty:
+            # 합계(총자산) 계산용
+            total_asset_val = 0
+            if asset_amount_col:
+                total_asset_val = df_assets[asset_amount_col].sum()
+                
+                # 표시용 데이터프레임 복사
+                df_assets_disp = df_assets.copy()
+                # 금액 컬럼만 콤마 포맷 적용 (나머지 열은 그대로)
+                df_assets_disp[asset_amount_col] = df_assets_disp[asset_amount_col].apply(format_comma)
+                
+                # 전체 데이터프레임 표시 (모든 열 포함)
+                st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
+                st.metric("총 자산", f"{format_comma(total_asset_val)} 원")
+            else:
+                # 금액 컬럼을 못 찾았을 경우 그냥 다 보여줌
+                st.dataframe(df_assets, use_container_width=True, hide_index=True)
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
 
