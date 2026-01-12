@@ -447,8 +447,8 @@ if st.session_state['menu'] == 'all_status':
                 (df_ledger['분류'].str.contains('적금', na=False))
             ].copy()
             
-            # 날짜 컬럼 찾기 (일시)
-            date_col = '날짜' if '날짜' in target_ledger.columns else '일시'
+            # 날짜 컬럼 찾기 (거래일시)
+            date_col = '날짜' if '날짜' in target_ledger.columns else '거래일시'
             
             principal_sum = target_ledger['금액'].sum()
             
@@ -457,13 +457,13 @@ if st.session_state['menu'] == 'all_status':
             # 표시용 표 만들기
             if date_col in target_ledger.columns:
                 df_disp_ledger = pd.DataFrame()
-                df_disp_ledger['일시'] = target_ledger[date_col]
+                df_disp_ledger['거래일시'] = target_ledger[date_col]
                 df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
                 df_disp_ledger['내용'] = target_ledger['내용']
                 
                 st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
             else:
-                st.warning("'날짜' 또는 '일시' 열을 찾을 수 없습니다.")
+                st.warning("'날짜' 또는 '거래일시' 열을 찾을 수 없습니다.")
 
             st.divider()
 
