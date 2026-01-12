@@ -17,11 +17,14 @@ def get_base64_of_bin_file(bin_file):
 def set_style(current_menu):
     common_style = """
     <style>
+    /* 컨텐츠 박스 */
     .content-box {
         background-color: transparent;
         padding: 20px 0px;
         margin-bottom: 20px;
     }
+    
+    /* 버튼 스타일 */
     .stButton > button {
         width: 100%;
         height: 5rem;
@@ -31,6 +34,8 @@ def set_style(current_menu):
         transition: all 0.3s ease;
         margin-bottom: 10px;
     }
+    
+    /* 표 내용 가운데 정렬 */
     [data-testid="stDataFrame"] .stDataFrame {
         width: 100%;
     }
@@ -44,6 +49,8 @@ def set_style(current_menu):
         justify-content: center;
         text-align: center;
     }
+    
+    /* 결론 박스 스타일 */
     .conclusion-box {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.3);
@@ -56,9 +63,14 @@ def set_style(current_menu):
         margin-top: 10px;
         line-height: 1.6;
     }
-    .highlight-sum {
-        color: #ff4b4b; 
+    
+    /* 이자 강조 스타일 */
+    .interest-box {
+        font-size: 1.8rem;
         font-weight: bold;
+        color: #4CAF50; /* 초록색 */
+        text-align: center;
+        padding: 20px;
     }
     </style>
     """
@@ -392,7 +404,7 @@ if st.session_state['menu'] == 'all_status':
 
         st.divider()
 
-        # [4] 결론
+        # 4. 결론
         st.subheader("4. 결론")
         st.markdown(
             """
@@ -424,37 +436,72 @@ if st.session_state['menu'] == 'all_status':
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
 
-    # [수정] 탭 3: 이자 분석
+    # [수정] 3. 이자 분석 섹션 재구성
     with tab3:
-        st.subheader("적금 수익 분석")
         if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
             
-            # 1. 적금가입원금 (ledger에서 출금 + 적금 분류)
-            savings_principal = df_ledger[
-                (df_ledger['구분']=='출금') & 
+            # --- 1. 적금가입원금 ---
+            # ledger: 구분='출금' & 분류에 '적금' 포함
+            target_ledger = df_ledger[
+                (df_ledger['구분'] == '출금') & 
                 (df_ledger['분류'].str.contains('적금', na=False))
-            ]['금액'].sum()
+            ].copy()
             
-            # 2. 적금통장가입액 (assets에서 '적금'이 포함된 계좌 합계)
-            mask = df_assets[asset_name_col].str.contains('적금', na=False)
-            savings_current = df_assets[mask][asset_amount_col].sum()
+            # 날짜 컬럼 찾기 (일시)
+            date_col = '날짜' if '날짜' in target_ledger.columns else '일시'
             
-            # 3. 이자발생누적액
-            interest = savings_current - savings_principal
+            principal_sum = target_ledger['금액'].sum()
             
-            # 표 생성
-            interest_data = {
-                "구분": ["1. 적금가입원금", "2. 적금통장가입액(평가액)", "3. 이자발생누적액(2-1)"],
-                "금액": [savings_principal, savings_current, interest]
-            }
-            df_interest = pd.DataFrame(interest_data)
-            df_interest['금액'] = df_interest['금액'].apply(format_comma)
+            st.subheader(f"1. 적금가입원금 : {format_comma(principal_sum)} 원")
             
-            st.dataframe(df_interest, use_container_width=True, hide_index=True)
-            
+            # 표시용 표 만들기
+            if date_col in target_ledger.columns:
+                df_disp_ledger = pd.DataFrame()
+                df_disp_ledger['일시'] = target_ledger[date_col]
+                df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
+                df_disp_ledger['내용'] = target_ledger['내용']
+                
+                st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
+            else:
+                st.warning("'날짜' 또는 '일시' 열을 찾을 수 없습니다.")
+
             st.divider()
+
+            # --- 2. 적금통장가입액(평가액) ---
+            # assets: 항목에 '적금' 포함
+            target_assets = df_assets[
+                df_assets[asset_name_col].str.contains('적금', na=False)
+            ].copy()
             
-            # 4. 총평
+            current_val_sum = target_assets[asset_amount_col].sum()
+            
+            st.subheader(f"2. 적금통장가입액(평가액) : {format_comma(current_val_sum)} 원")
+            
+            # 은행 컬럼 찾기
+            bank_col = None
+            for col in ['은행', 'Bank', '금융기관']:
+                if col in df_assets.columns:
+                    bank_col = col
+                    break
+            
+            # 표시용 표 만들기
+            df_disp_assets = pd.DataFrame()
+            df_disp_assets['구분'] = target_assets[asset_name_col]
+            df_disp_assets['은행'] = target_assets[bank_col] if bank_col else '-'
+            df_disp_assets['잔액'] = target_assets[asset_amount_col].apply(format_comma)
+            
+            st.dataframe(df_disp_assets, use_container_width=True, hide_index=True)
+
+            st.divider()
+
+            # --- 3. 이자발생누적액 ---
+            interest = current_val_sum - principal_sum
+            st.subheader(f"3. 이자발생누적액(2-1)")
+            st.markdown(f"<div class='interest-box'>💰 {format_comma(interest)} 원</div>", unsafe_allow_html=True)
+
+            st.divider()
+
+            # --- 4. 총평 ---
             st.subheader("4. 총평")
             st.markdown(
                 """
@@ -464,6 +511,8 @@ if st.session_state['menu'] == 'all_status':
                 """, 
                 unsafe_allow_html=True
             )
+        else:
+            st.warning("데이터를 불러올 수 없습니다. (장부나 자산 시트 확인 필요)")
 
     render_footer()
 
