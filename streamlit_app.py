@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 import base64
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 디자인 (왼쪽 메뉴 + 다크 테마)
+# 1. 페이지 설정 및 디자인
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
@@ -125,7 +125,7 @@ def set_style(current_menu):
     """
     st.markdown(common_style, unsafe_allow_html=True)
 
-    # 홈 화면 (배경 이미지)
+    # 홈 화면 (배경 이미지 및 크레딧 스타일)
     if current_menu == 'home':
         try:
             bin_str = get_base64_of_bin_file('bg.png')
@@ -138,11 +138,23 @@ def set_style(current_menu):
                 background-repeat: no-repeat;
                 background-attachment: fixed;
             }}
-            /* 홈 화면에서는 상단 여백 최소화 */
             .block-container {{
                 padding-top: 0rem;
                 padding-left: 2rem;
                 max-width: 100%;
+            }}
+            /* [추가] 오른쪽 하단 크레딧 스타일 */
+            .footer-credit {{
+                position: fixed;
+                bottom: 15px;
+                right: 20px;
+                color: rgba(255, 255, 255, 0.6); /* 은은한 흰색 */
+                font-size: 0.9rem;
+                font-weight: 500;
+                padding: 5px 12px;
+                background-color: rgba(0, 0, 0, 0.3); /* 배경과 어우러지는 반투명 박스 */
+                border-radius: 15px;
+                z-index: 9999; /* 맨 위에 표시 */
             }}
             </style>
             """
@@ -207,10 +219,10 @@ def get_dues_calc_info():
     return ref_date, months_passed
 
 # -----------------------------------------------------------------------------
-# 3. 화면 구성 (홈 화면) - [수정됨: 메뉴 왼쪽 배치]
+# 3. 화면 구성 (홈 화면)
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'home':
-    # 왼쪽(메뉴 1) : 오른쪽(여백 4) 비율
+    # 왼쪽(메뉴 1.2) : 오른쪽(여백 4) 비율
     left_col, right_col = st.columns([1.2, 4])
     
     with left_col:
@@ -228,6 +240,9 @@ if st.session_state['menu'] == 'home':
         if st.button("🚪 회칙 확인"):
             st.session_state['menu'] = 'rules'
             st.rerun()
+            
+    # [추가] 오른쪽 하단 크레딧 문구 (홈 화면에만 표시)
+    st.markdown('<div class="footer-credit">Created by GSKim</div>', unsafe_allow_html=True)
 
 def render_header(title):
     st.markdown('<div class="content-box">', unsafe_allow_html=True)
