@@ -17,14 +17,11 @@ def get_base64_of_bin_file(bin_file):
 def set_style(current_menu):
     common_style = """
     <style>
-    /* 컨텐츠 박스 */
     .content-box {
         background-color: transparent;
         padding: 20px 0px;
         margin-bottom: 20px;
     }
-    
-    /* 버튼 스타일 */
     .stButton > button {
         width: 100%;
         height: 5rem;
@@ -34,8 +31,6 @@ def set_style(current_menu):
         transition: all 0.3s ease;
         margin-bottom: 10px;
     }
-    
-    /* 표 내용 가운데 정렬 */
     [data-testid="stDataFrame"] .stDataFrame {
         width: 100%;
     }
@@ -49,8 +44,6 @@ def set_style(current_menu):
         justify-content: center;
         text-align: center;
     }
-    
-    /* 결론 박스 스타일 */
     .conclusion-box {
         background-color: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.3);
@@ -63,8 +56,6 @@ def set_style(current_menu):
         margin-top: 10px;
         line-height: 1.6;
     }
-    
-    /* 섹션 제목 강조 스타일 */
     .highlight-sum {
         color: #ff4b4b; 
         font-weight: bold;
@@ -291,7 +282,7 @@ if st.session_state['menu'] == 'all_status':
     total_due_target_per_person = 1000000 + (months_passed * 30000)
     
     with tab1:
-        # [계산 1] 전체 입금액
+        # [1] 전체 입금액
         total_paid_sum = 0
         df_display = pd.DataFrame()
         
@@ -342,7 +333,7 @@ if st.session_state['menu'] == 'all_status':
             
         st.divider()
         
-        # [계산 2] 지출액
+        # [2] 지출액
         exp_total = 0
         df_exp = pd.DataFrame()
         
@@ -372,7 +363,7 @@ if st.session_state['menu'] == 'all_status':
         
         st.divider()
 
-        # [계산 3] 분석적 검토
+        # [3] 분석적 검토
         real_balance = 0
         if asset_amount_col and asset_name_col:
             try: 
@@ -401,7 +392,7 @@ if st.session_state['menu'] == 'all_status':
 
         st.divider()
 
-        # 4. 결론
+        # [4] 결론
         st.subheader("4. 결론")
         st.markdown(
             """
@@ -417,32 +408,62 @@ if st.session_state['menu'] == 'all_status':
         if not df_assets.empty:
             total_asset_val = 0
             if asset_amount_col:
-                # [수정] 합계 계산 시 '합계' 또는 '소계' 등이 포함된 행은 제외하고 계산
                 if asset_name_col:
                     mask = ~df_assets[asset_name_col].astype(str).str.contains('합계', na=False)
                     total_asset_val = df_assets[mask][asset_amount_col].sum()
                 else:
                     total_asset_val = df_assets[asset_amount_col].sum()
                 
-                # 표시용 복사본
                 df_assets_disp = df_assets.copy()
                 df_assets_disp[asset_amount_col] = df_assets_disp[asset_amount_col].apply(format_comma)
                 
                 st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
                 st.metric("총 자산", f"{format_comma(total_asset_val)} 원")
             else:
-                # 금액 열을 못 찾으면 있는 그대로 표시
                 st.dataframe(df_assets, use_container_width=True, hide_index=True)
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
 
+    # [수정] 탭 3: 이자 분석
     with tab3:
-        st.subheader("적금 수익")
+        st.subheader("적금 수익 분석")
         if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
-            savings_principal = df_ledger[(df_ledger['구분']=='출금') & (df_ledger['분류'].str.contains('적금'))]['금액'].sum()
+            
+            # 1. 적금가입원금 (ledger에서 출금 + 적금 분류)
+            savings_principal = df_ledger[
+                (df_ledger['구분']=='출금') & 
+                (df_ledger['분류'].str.contains('적금', na=False))
+            ]['금액'].sum()
+            
+            # 2. 적금통장가입액 (assets에서 '적금'이 포함된 계좌 합계)
             mask = df_assets[asset_name_col].str.contains('적금', na=False)
             savings_current = df_assets[mask][asset_amount_col].sum()
-            st.metric("이자 수익", f"{format_comma(savings_current - savings_principal)} 원")
+            
+            # 3. 이자발생누적액
+            interest = savings_current - savings_principal
+            
+            # 표 생성
+            interest_data = {
+                "구분": ["1. 적금가입원금", "2. 적금통장가입액(평가액)", "3. 이자발생누적액(2-1)"],
+                "금액": [savings_principal, savings_current, interest]
+            }
+            df_interest = pd.DataFrame(interest_data)
+            df_interest['금액'] = df_interest['금액'].apply(format_comma)
+            
+            st.dataframe(df_interest, use_container_width=True, hide_index=True)
+            
+            st.divider()
+            
+            # 4. 총평
+            st.subheader("4. 총평")
+            st.markdown(
+                """
+                <div class="conclusion-box">
+                회비는 매우 투명하게 관리되고 있으며, 입출금내역 검토시 설명할 수 없는 내역은 존재하지 아니함. 매우 훌륭하다고 평가됨
+                </div>
+                """, 
+                unsafe_allow_html=True
+            )
 
     render_footer()
 
