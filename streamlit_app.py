@@ -39,8 +39,16 @@ def set_style(current_menu):
     /* 회칙 내용 스타일 */
     .rule-content {{
         font-size: 1.1rem;
-        line-height: 1.6;
-        color: #333;
+        line-height: 1.7;
+        color: #444;
+        margin-bottom: 15px;
+        padding-left: 5px;
+    }}
+    /* 회칙 제목 스타일 */
+    .rule-header {{
+        color: #1e3a8a; /* 짙은 파란색 */
+        font-weight: bold;
+        margin-top: 20px;
         margin-bottom: 10px;
     }}
     </style>
@@ -370,7 +378,7 @@ if st.session_state['menu'] == 'all_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 6. 기능: 회칙 (펼쳐보기 모드 수정)
+# 6. 기능: 회칙 (수정됨: 제목 괄호 처리)
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'rules':
     render_header("📜 회칙 및 규정")
@@ -381,10 +389,19 @@ if st.session_state['menu'] == 'rules':
         if search_rule:
             df_rules = df_rules[df_rules['내용'].str.contains(search_rule) | df_rules['조항'].str.contains(search_rule)]
         
-        # [수정] expander(접기/펼치기) 대신 바로 보여주기
         for idx, row in df_rules.iterrows():
-            st.markdown(f"#### 📌 {row.get('조항', '-')}")
+            article = row.get('조항', '')
+            # 제목(또는 항목) 컬럼이 있으면 가져와서 괄호 안에 넣음
+            title = row.get('제목', row.get('항목', ''))
+            
+            # title이 있고, 'nan'이 아니면 포맷팅
+            if title and str(title).lower() != 'nan':
+                header_text = f"{article}({title})"
+            else:
+                header_text = article
+            
+            st.markdown(f"<div class='rule-header'>{header_text}</div>", unsafe_allow_html=True)
             st.markdown(f"<div class='rule-content'>{row.get('내용', '-')}</div>", unsafe_allow_html=True)
-            st.divider() # 구분선 추가
+            st.divider()
             
     render_footer()
