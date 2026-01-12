@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 import base64
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 디자인
+# 1. 페이지 설정 및 디자인 (CSS: 가운데 정렬 + 버튼 스타일)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
@@ -15,9 +15,22 @@ def get_base64_of_bin_file(bin_file):
     return base64.b64encode(data).decode()
 
 def set_style(current_menu):
+    # [디자인] 표 내용 가운데 정렬 & 버튼 스타일
     common_style = """
     <style>
-    .content-box {{
+    /* 1. 데이터프레임(표) 헤더 가운데 정렬 */
+    div[data-testid="stDataFrame"] div[role="columnheader"] {
+        justify-content: center;
+        text-align: center;
+    }
+    /* 2. 데이터프레임(표) 셀 내용 가운데 정렬 */
+    div[data-testid="stDataFrame"] div[role="gridcell"] {
+        justify-content: center;
+        text-align: center;
+    }
+    
+    /* 3. 컨텐츠 박스 스타일 */
+    .content-box {
         background-color: #ffffff;
         border-radius: 15px;
         padding: 30px;
@@ -27,8 +40,10 @@ def set_style(current_menu):
         max-width: 1200px;
         margin-left: auto;
         margin-right: auto;
-    }}
-    .stButton > button {{
+    }
+    
+    /* 4. 버튼 스타일 (달걀형) */
+    .stButton > button {
         width: 100%;
         height: 5rem;
         border-radius: 50px;
@@ -36,10 +51,19 @@ def set_style(current_menu):
         font-weight: 600;
         transition: all 0.3s ease;
         margin-bottom: 10px;
-    }}
-    th {{
-        text-align: center !important;
-    }}
+    }
+    
+    /* 5. 결론 박스 스타일 */
+    .conclusion-box {
+        background-color: #e8f4f8; /* 연한 하늘색 */
+        border-left: 5px solid #0288d1;
+        padding: 20px;
+        border-radius: 5px;
+        color: #01579b;
+        font-weight: bold;
+        font-size: 1.1rem;
+        text-align: center;
+    }
     </style>
     """
     st.markdown(common_style, unsafe_allow_html=True)
@@ -128,6 +152,13 @@ def safe_int(value):
     except:
         return 0
 
+# [도우미 함수] 숫자에 콤마를 찍어서 문자열로 변환 (예: 1000 -> "1,000")
+def format_comma(val):
+    try:
+        return f"{int(val):,}"
+    except:
+        return val
+
 def get_dues_calc_info():
     today = datetime.now()
     ref_date = today - relativedelta(months=1)
@@ -195,9 +226,7 @@ if st.session_state['menu'] == 'personal_status':
             if not df_ledger.empty:
                 if '금액' in df_ledger.columns:
                     df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
-                    # 입금
                     my_deposit = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == user_name)]['금액'].sum()
-                    # 지출
                     my_condolence_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금') & (df_ledger['내용'] == user_name)]['금액'].sum()
                     my_wreath_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환') & (df_ledger['내용'] == user_name)]['금액'].sum()
 
@@ -231,7 +260,7 @@ if st.session_state['menu'] == 'personal_status':
     render_footer()
 
 # -----------------------------------------------------------------------------
-# 5. 기능: 회원 전체 현황
+# 5. 기능: 회원 전체 현황 (결론 추가 및 콤마 적용)
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'all_status':
     render_header("📊 회원전체현황")
@@ -240,26 +269,18 @@ if st.session_state['menu'] == 'all_status':
     df_ledger = load_data("ledger")
     df_assets = load_data("assets")
     
-    # 데이터 전처리: 공백 제거 및 숫자 변환
     if not df_ledger.empty:
-        if '구분' in df_ledger.columns:
-            df_ledger['구분'] = df_ledger['구분'].astype(str).str.strip()
-        if '분류' in df_ledger.columns:
-            df_ledger['분류'] = df_ledger['분류'].astype(str).str.strip()
-        if '금액' in df_ledger.columns:
-            df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
+        if '구분' in df_ledger.columns: df_ledger['구분'] = df_ledger['구분'].astype(str).str.strip()
+        if '분류' in df_ledger.columns: df_ledger['분류'] = df_ledger['분류'].astype(str).str.strip()
+        if '금액' in df_ledger.columns: df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
 
     asset_name_col = None
     asset_amount_col = None
     if not df_assets.empty:
         for col in ['항목', '자산명', '자산', '계좌명', '구분', '내용', 'Asset']:
-            if col in df_assets.columns:
-                asset_name_col = col
-                break
+            if col in df_assets.columns: asset_name_col = col; break
         for col in ['금액', '잔액', '평가액', '자산금액', 'Amount']:
-            if col in df_assets.columns:
-                asset_amount_col = col
-                break
+            if col in df_assets.columns: asset_amount_col = col; break
         if asset_amount_col:
             df_assets[asset_amount_col] = df_assets[asset_amount_col].apply(safe_int)
 
@@ -280,7 +301,6 @@ if st.session_state['menu'] == 'all_status':
             for index, row in df_members.iterrows():
                 name = row['성명']
                 if '금액' in df_ledger.columns:
-                    # 입금액 계산
                     paid_total = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == name)]['금액'].sum()
                 else:
                     paid_total = 0
@@ -299,7 +319,7 @@ if st.session_state['menu'] == 'all_status':
             df_analysis = pd.DataFrame(analysis_data)
             
             total_due = df_analysis['A.납부할금액'].sum()
-            total_paid_sum = df_analysis['B.납부한금액'].sum() # A값 계산용
+            total_paid_sum = df_analysis['B.납부한금액'].sum()
             total_diff = df_analysis['차이금액(=A-B)'].sum()
             
             total_row = pd.DataFrame([{
@@ -312,18 +332,12 @@ if st.session_state['menu'] == 'all_status':
             
             df_display = pd.concat([df_analysis, total_row], ignore_index=True)
             
-            st.dataframe(
-                df_display, 
-                use_container_width=True, 
-                hide_index=True,
-                column_config={
-                    "회원명": st.column_config.TextColumn(),
-                    "A.납부할금액": st.column_config.NumberColumn(format="%d"),
-                    "B.납부한금액": st.column_config.NumberColumn(format="%d"),
-                    "차이금액(=A-B)": st.column_config.NumberColumn(format="%d"),
-                    "상태": st.column_config.TextColumn()
-                }
-            )
+            # [디자인] 콤마(,) 찍기: 화면 표시용으로 문자열 변환
+            cols_to_comma = ["A.납부할금액", "B.납부한금액", "차이금액(=A-B)"]
+            for col in cols_to_comma:
+                df_display[col] = df_display[col].apply(format_comma)
+
+            st.dataframe(df_display, use_container_width=True, hide_index=True)
             
             st.divider()
             
@@ -335,7 +349,7 @@ if st.session_state['menu'] == 'all_status':
                 exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
                 exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
                 
-                exp_total = exp_condolence + exp_wreath + exp_meeting # 지출 합계
+                exp_total = exp_condolence + exp_wreath + exp_meeting
                 
                 exp_data = {
                     "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 합계"],
@@ -348,36 +362,24 @@ if st.session_state['menu'] == 'all_status':
                     "금액": [exp_condolence, exp_wreath, exp_meeting, exp_total]
                 }
                 df_exp = pd.DataFrame(exp_data)
+                # 콤마 적용
+                df_exp['금액'] = df_exp['금액'].apply(format_comma)
                 
-                st.dataframe(
-                    df_exp,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "지출 항목": st.column_config.TextColumn(width="medium"),
-                        "내용 설명": st.column_config.TextColumn(width="large"),
-                        "금액": st.column_config.NumberColumn(format="%d")
-                    }
-                )
+                st.dataframe(df_exp, use_container_width=True, hide_index=True)
             
             st.divider()
 
-            # [추가] 3. 분석적 검토
+            # 3. 분석적 검토
             st.subheader("3. 분석적검토")
 
-            # 자산 잔액 가져오기 (B값)
             if asset_amount_col and asset_name_col:
                 try: 
                     mask = df_assets[asset_name_col].str.contains('회비통장', na=False)
-                    if mask.any(): 
-                        real_balance = df_assets[mask][asset_amount_col].iloc[0]
-                    else: 
-                        real_balance = 0
+                    if mask.any(): real_balance = df_assets[mask][asset_amount_col].iloc[0]
+                    else: real_balance = 0
                 except: real_balance = 0
             
-            # A값: 입금합계 - 지출합계
             val_a = total_paid_sum - exp_total
-            # B값: 실제 잔액
             val_b = real_balance
             
             review_data = {
@@ -390,16 +392,22 @@ if st.session_state['menu'] == 'all_status':
                 "금액": [val_a, val_b, val_a - val_b]
             }
             df_review = pd.DataFrame(review_data)
+            # 콤마 적용
+            df_review['금액'] = df_review['금액'].apply(format_comma)
             
-            st.dataframe(
-                df_review,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "구분": st.column_config.TextColumn(width="medium"),
-                    "산출 근거": st.column_config.TextColumn(width="large"),
-                    "금액": st.column_config.NumberColumn(format="%d")
-                }
+            st.dataframe(df_review, use_container_width=True, hide_index=True)
+
+            st.divider()
+
+            # [추가] 4. 결론
+            st.subheader("4. 결론")
+            st.markdown(
+                """
+                <div class="conclusion-box">
+                차이금액은 회비통장의 이자수익 등 미반영으로 차이 발생분으로 중요성관점에서 문제없음
+                </div>
+                """, 
+                unsafe_allow_html=True
             )
 
         else:
@@ -408,20 +416,20 @@ if st.session_state['menu'] == 'all_status':
     with tab2:
         st.subheader("보유 자산")
         if not df_assets.empty and asset_amount_col:
-            st.dataframe(df_assets, use_container_width=True, hide_index=True)
-            st.metric("총 자산", f"{df_assets[asset_amount_col].sum():,} 원")
+            total_asset_val = df_assets[asset_amount_col].sum()
+            # 표시용 복사본 생성
+            df_assets_disp = df_assets.copy()
+            df_assets_disp[asset_amount_col] = df_assets_disp[asset_amount_col].apply(format_comma)
+            
+            st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
+            st.metric("총 자산", f"{total_asset_val:,} 원")
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
 
     with tab3:
         st.subheader("적금 수익")
         if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
-            # 적금 원금
-            savings_principal = df_ledger[
-                (df_ledger['구분'] == '출금') & 
-                (df_ledger['분류'].str.contains('적금', na=False))
-            ]['금액'].sum()
-            # 적금 현재가
+            savings_principal = df_ledger[(df_ledger['구분']=='출금') & (df_ledger['분류'].str.contains('적금'))]['금액'].sum()
             mask = df_assets[asset_name_col].str.contains('적금', na=False)
             savings_current = df_assets[mask][asset_amount_col].sum()
             st.metric("이자 수익", f"{savings_current - savings_principal:,} 원")
