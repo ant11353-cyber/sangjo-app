@@ -9,16 +9,22 @@ import base64
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
+# [핵심 변경] 현재 페이지 확인 (URL 쿼리 파라미터 사용)
+# 브라우저의 주소창 정보를 읽어서 현재 어떤 페이지인지 판단합니다.
+# 이렇게 해야 휴대폰 '뒤로가기' 버튼이 작동합니다.
+query_params = st.query_params
+current_page = query_params.get("page", "home")
+
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
         data = f.read()
     return base64.b64encode(data).decode()
 
-def set_style(current_menu):
+def set_style(page_name):
     # 공통 스타일 (다크 모드 베이스)
     common_style = """
     <style>
-    /* 전체 앱 텍스트 기본 색상 (흰색/회색) */
+    /* 전체 앱 텍스트 기본 색상 */
     .stApp, .stMarkdown, .stText, h1, h2, h3, h4, h5, h6 {
         color: #e0e0e0 !important;
     }
@@ -26,20 +32,20 @@ def set_style(current_menu):
     /* 컨텐츠 박스 (투명) */
     .content-box {
         background-color: transparent;
-        padding: 20px 0px;
+        padding: 10px 0px;
         margin-bottom: 20px;
     }
     
-    /* [기본] 버튼 스타일 (PC 기준 - 크고 시원하게) */
+    /* [수정] PC 버튼 스타일 */
     .stButton > button {
         width: 100%;
-        height: 6rem;
-        border-radius: 60px;
-        font-size: 1.5rem;
+        height: 4.5rem; /* PC에서도 적당히 줄임 */
+        border-radius: 50px;
+        font-size: 1.2rem;
         font-weight: 600;
         transition: all 0.3s ease;
-        margin-bottom: 15px;
-        background-color: rgba(30, 30, 30, 0.8); /* 어두운 배경 */
+        margin-bottom: 12px;
+        background-color: rgba(30, 30, 30, 0.8);
         color: #ffffff;
         border: 1px solid rgba(255, 255, 255, 0.2);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
@@ -51,27 +57,26 @@ def set_style(current_menu):
         transform: scale(1.02);
     }
 
-    /* [중요] 모바일 화면 최적화 (화면 폭 768px 이하일 때 적용) */
-    @media only screen and (max-width: 768px) {
-        /* 버튼 크기를 줄여서 조화롭게 만듦 */
+    /* [재수정] 모바일 화면 최적화 (버튼 더 작게, 아래로) */
+    @media only screen and (max-width: 600px) {
         .stButton > button {
-            height: 4rem !important;       /* 높이 축소 (6rem -> 4rem) */
-            min-height: 4rem !important;
-            font-size: 1.1rem !important;  /* 글자 크기 축소 (1.5rem -> 1.1rem) */
-            border-radius: 30px !important; /* 둥글기 조정 */
-            margin-bottom: 12px !important; /* 간격 조정 */
+            height: 3.2rem !important;      /* 높이 더 축소 */
+            min-height: 3.2rem !important;
+            font-size: 1rem !important;     /* 글자 크기 축소 */
+            border-radius: 30px !important;
+            margin-bottom: 8px !important;
         }
-        /* 홈 화면 상단 여백 조정 */
+        /* 홈 화면 상단 여백 제거 */
         .block-container {
             padding-left: 1rem !important;
             padding-right: 1rem !important;
         }
     }
     
-    /* 표(DataFrame) 스타일 커스텀 (다크 모드 대응) */
+    /* 표 스타일 */
     [data-testid="stDataFrame"] {
         background-color: rgba(255, 255, 255, 0.05);
-        padding: 10px;
+        padding: 5px;
         border-radius: 10px;
     }
     [data-testid="stDataFrame"] div[role="columnheader"] {
@@ -88,35 +93,35 @@ def set_style(current_menu):
         color: #e0e0e0;
     }
     
-    /* 결론 박스 스타일 (다크) */
+    /* 결론 박스 */
     .conclusion-box {
         background-color: rgba(0, 0, 0, 0.4);
         border: 1px solid rgba(255, 255, 255, 0.15);
-        padding: 25px;
+        padding: 20px;
         border-radius: 10px;
         color: #f0f0f0;
         font-weight: bold;
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         text-align: center;
         margin-top: 15px;
         line-height: 1.6;
     }
     
-    /* 이자 강조 스타일 */
+    /* 이자 강조 */
     .interest-box {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
         font-weight: bold;
-        color: #81c784; /* 부드러운 밝은 녹색 */
+        color: #81c784;
         text-align: center;
-        padding: 20px;
+        padding: 15px;
         background-color: rgba(255, 255, 255, 0.05);
         border-radius: 10px;
     }
 
-    /* 로그인 안내 박스 (다크) */
+    /* 로그인 안내 박스 */
     .login-guide-box {
         background-color: rgba(30, 30, 30, 0.8);
-        padding: 25px;
+        padding: 20px;
         border-radius: 15px;
         text-align: center;
         box-shadow: 0 4px 15px rgba(0,0,0,0.5);
@@ -125,11 +130,11 @@ def set_style(current_menu):
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .highlight {
-         color: #ffcc00 !important; /* 노란색 강조 */
+         color: #ffcc00 !important;
          font-weight: bold;
     }
     
-    /* 입력창 스타일 */
+    /* 입력창 */
     .stTextInput input {
         background-color: rgba(255, 255, 255, 0.1);
         color: #ffffff;
@@ -142,8 +147,8 @@ def set_style(current_menu):
     """
     st.markdown(common_style, unsafe_allow_html=True)
 
-    # 홈 화면 (배경 이미지)
-    if current_menu == 'home':
+    # 홈 화면 배경
+    if page_name == 'home':
         try:
             bin_str = get_base64_of_bin_file('bg.png')
             home_style = f"""
@@ -155,47 +160,42 @@ def set_style(current_menu):
                 background-repeat: no-repeat;
                 background-attachment: fixed;
             }}
-            /* 오른쪽 하단 크레딧 */
-            .footer-credit {{
-                position: fixed;
-                bottom: 15px;
-                right: 20px;
-                color: rgba(255, 255, 255, 0.6);
-                font-size: 0.9rem;
-                font-weight: 500;
-                padding: 5px 12px;
-                background-color: rgba(0, 0, 0, 0.3);
-                border-radius: 15px;
-                z-index: 9999;
-            }}
-            /* 상단 여백 제거 (모바일 media query에서 덮어씌워질 수 있음) */
             .block-container {{
                 padding-top: 0rem;
-                padding-left: 2rem;
+                padding-left: 1.5rem;
+                padding-right: 1.5rem;
                 max-width: 100%;
+            }}
+            /* 크레딧 */
+            .footer-credit {{
+                position: fixed;
+                bottom: 10px;
+                right: 10px;
+                color: rgba(255, 255, 255, 0.5);
+                font-size: 0.8rem;
+                padding: 4px 10px;
+                background-color: rgba(0, 0, 0, 0.4);
+                border-radius: 15px;
+                z-index: 9999;
             }}
             </style>
             """
             st.markdown(home_style, unsafe_allow_html=True)
         except FileNotFoundError:
             st.error("배경화면 파일(bg.png)을 찾을 수 없습니다.")
-    
-    # 상세 화면 (어두운 배경색)
     else:
+        # 상세 화면 배경 (어두운 색)
         detail_style = """
         <style>
         .stApp {
             background-image: none !important;
-            background-color: #121212 !important; /* 아주 어두운 검회색 */
+            background-color: #121212 !important;
         }
         </style>
         """
         st.markdown(detail_style, unsafe_allow_html=True)
 
-if 'menu' not in st.session_state:
-    st.session_state['menu'] = 'home'
-
-set_style(st.session_state['menu'])
+set_style(current_page)
 
 # -----------------------------------------------------------------------------
 # 2. 데이터 불러오기 및 계산 함수
@@ -239,37 +239,40 @@ def get_dues_calc_info():
 # -----------------------------------------------------------------------------
 # 3. 화면 구성 (홈 화면)
 # -----------------------------------------------------------------------------
-if st.session_state['menu'] == 'home':
-    # 왼쪽(메뉴 1.2) : 오른쪽(여백 4) 비율로 화면 분할
+if current_page == 'home':
+    # 왼쪽(1.2) : 오른쪽(4) 비율
     left_col, right_col = st.columns([1.2, 4])
     
     with left_col:
-        # 화면 중간쯤에 오도록 빈 공간 추가
-        st.markdown("<div style='height: 30vh;'></div>", unsafe_allow_html=True)
+        # [수정] 아래쪽으로 더 내리기 (50vh = 화면 높이의 50%만큼 빈 공간)
+        st.markdown("<div style='height: 50vh;'></div>", unsafe_allow_html=True)
         
-        # 메뉴 버튼들을 세로로 배치
+        # [핵심] 버튼 클릭 시 URL 파라미터 변경 후 리런 -> 뒤로가기 가능해짐
         if st.button("🚪 회원 전체 현황"):
-            st.session_state['menu'] = 'all_status'
+            st.query_params["page"] = "all_status"
             st.rerun()
         st.write("") 
         if st.button("🚪 회원 개인 현황"):
-            st.session_state['menu'] = 'personal_status'
+            st.query_params["page"] = "personal_status"
             st.rerun()
         st.write("") 
         if st.button("🚪 회칙 확인"):
-            st.session_state['menu'] = 'rules'
+            st.query_params["page"] = "rules"
             st.rerun()
             
-    # 오른쪽 하단 크레딧
     st.markdown('<div class="footer-credit">Created by GSKim</div>', unsafe_allow_html=True)
 
+# -----------------------------------------------------------------------------
+# 공통 헤더/푸터
+# -----------------------------------------------------------------------------
 def render_header(title):
     st.markdown('<div class="content-box">', unsafe_allow_html=True)
     c1, c2 = st.columns([8, 2])
     with c1: st.header(title)
     with c2:
+        # 홈으로 가기 버튼도 URL 변경 방식 사용
         if st.button("🏠 홈으로"):
-            st.session_state['menu'] = 'home'
+            st.query_params["page"] = "home"
             st.rerun()
 
 def render_footer():
@@ -278,13 +281,12 @@ def render_footer():
 # -----------------------------------------------------------------------------
 # 4. 기능: 회원 개인 현황
 # -----------------------------------------------------------------------------
-if st.session_state['menu'] == 'personal_status':
+if current_page == 'personal_status':
     render_header("🔒 회원 개인 현황")
     
     spacer_left, col_center, spacer_right = st.columns([1, 2, 1])
     
     with col_center:
-        # 로그인 안내 박스 (다크 테마)
         st.markdown(
             """
             <div class="login-guide-box">
@@ -321,9 +323,7 @@ if st.session_state['menu'] == 'personal_status':
             if not df_ledger.empty:
                 if '금액' in df_ledger.columns:
                     df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
-                    # 입금
                     my_deposit = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == user_name)]['금액'].sum()
-                    # 지출
                     my_condolence_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금') & (df_ledger['내용'] == user_name)]['금액'].sum()
                     my_wreath_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환') & (df_ledger['내용'] == user_name)]['금액'].sum()
 
@@ -361,7 +361,7 @@ if st.session_state['menu'] == 'personal_status':
 # -----------------------------------------------------------------------------
 # 5. 기능: 회원 전체 현황
 # -----------------------------------------------------------------------------
-if st.session_state['menu'] == 'all_status':
+if current_page == 'all_status':
     render_header("📊 회원전체현황")
     
     df_members = load_data("members")
@@ -601,7 +601,7 @@ if st.session_state['menu'] == 'all_status':
 # -----------------------------------------------------------------------------
 # 6. 기능: 회칙
 # -----------------------------------------------------------------------------
-if st.session_state['menu'] == 'rules':
+if current_page == 'rules':
     render_header("📜 회칙 및 규정")
     df_rules = load_data("rules")
     search_rule = st.text_input("규정 검색", placeholder="검색어를 입력하세요")
