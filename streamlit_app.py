@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 import base64
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 디자인 (모바일 최적화 적용)
+# 1. 페이지 설정 및 디자인
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
@@ -18,30 +18,6 @@ def set_style(current_menu):
     # 공통 스타일 (다크 모드 베이스)
     common_style = """
     <style>
-    /* [모바일 최적화] 스마트폰 화면(폭 600px 이하)에서만 적용되는 스타일 */
-    @media only screen and (max-width: 600px) {
-        /* 1. 상하좌우 여백 최소화 (화면 꽉 채우기) */
-        .block-container {
-            padding-top: 1rem !important;
-            padding-bottom: 5rem !important;
-            padding-left: 0.5rem !important;
-            padding-right: 0.5rem !important;
-        }
-        
-        /* 2. 글자 크기 키우기 */
-        h1 { font-size: 2.2rem !important; }
-        h2 { font-size: 1.8rem !important; }
-        h3 { font-size: 1.5rem !important; }
-        p, .stMarkdown { font-size: 1rem !important; }
-        
-        /* 3. 버튼 크기 및 터치 영역 확대 */
-        .stButton > button {
-            height: 5rem !important;
-            font-size: 1.4rem !important;
-            margin-bottom: 12px !important;
-        }
-    }
-
     /* 전체 앱 텍스트 기본 색상 (흰색) */
     .stApp, .stMarkdown, .stText, h1, h2, h3, h4, h5, h6 {
         color: #e0e0e0 !important;
@@ -50,20 +26,20 @@ def set_style(current_menu):
     /* 컨텐츠 박스 (투명) */
     .content-box {
         background-color: transparent;
-        padding: 10px 0px;
+        padding: 20px 0px;
         margin-bottom: 20px;
     }
     
-    /* 버튼 스타일 (달걀형, 다크 스타일) */
+    /* [수정] 버튼 스타일 (PC 기준) */
     .stButton > button {
         width: 100%;
-        height: 6rem; /* PC에서는 6rem */
-        border-radius: 60px;
-        font-size: 1.5rem;
+        height: 4.5rem; /* 높이를 줄임 (6rem -> 4.5rem) */
+        border-radius: 50px;
+        font-size: 1.2rem; /* 글자 크기도 약간 조정 */
         font-weight: 600;
         transition: all 0.3s ease;
-        margin-bottom: 15px;
-        background-color: rgba(30, 30, 30, 0.8); /* 어두운 배경 */
+        margin-bottom: 12px;
+        background-color: rgba(30, 30, 30, 0.8);
         color: #ffffff;
         border: 1px solid rgba(255, 255, 255, 0.2);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
@@ -74,11 +50,26 @@ def set_style(current_menu):
         color: #ffcc00;
         transform: scale(1.02);
     }
+
+    /* [중요] 모바일 화면(폭 600px 이하) 전용 스타일 */
+    @media only screen and (max-width: 600px) {
+        .stButton > button {
+            height: 3.5rem !important; /* 모바일에서는 더 작고 날렵하게 */
+            font-size: 1rem !important;
+            margin-bottom: 8px !important;
+            border-radius: 40px !important;
+        }
+        /* 홈 화면 하단 크레딧 위치 조정 */
+        .footer-credit {
+            bottom: 5px !important;
+            font-size: 0.7rem !important;
+        }
+    }
     
     /* 표(DataFrame) 스타일 커스텀 */
     [data-testid="stDataFrame"] {
         background-color: rgba(255, 255, 255, 0.05);
-        padding: 5px;
+        padding: 10px;
         border-radius: 10px;
     }
     [data-testid="stDataFrame"] div[role="columnheader"] {
@@ -87,25 +78,23 @@ def set_style(current_menu):
         text-align: center;
         color: #ffffff;
         font-weight: bold;
-        font-size: 1rem;
     }
     [data-testid="stDataFrame"] div[role="gridcell"] {
         display: flex;
         justify-content: center;
         text-align: center;
         color: #e0e0e0;
-        font-size: 0.95rem; /* 표 글씨 크기 조정 */
     }
     
-    /* 결론 박스 스타일 (다크) */
+    /* 결론 박스 스타일 */
     .conclusion-box {
         background-color: rgba(0, 0, 0, 0.4);
         border: 1px solid rgba(255, 255, 255, 0.15);
-        padding: 20px;
+        padding: 25px;
         border-radius: 10px;
         color: #f0f0f0;
         font-weight: bold;
-        font-size: 1.3rem; /* 모바일 대응을 위해 약간 조정 */
+        font-size: 1.5rem;
         text-align: center;
         margin-top: 15px;
         line-height: 1.6;
@@ -125,7 +114,7 @@ def set_style(current_menu):
     /* 로그인 안내 박스 */
     .login-guide-box {
         background-color: rgba(30, 30, 30, 0.8);
-        padding: 20px;
+        padding: 25px;
         border-radius: 15px;
         text-align: center;
         box-shadow: 0 4px 15px rgba(0,0,0,0.5);
@@ -147,23 +136,11 @@ def set_style(current_menu):
     .stTextInput label {
         color: #ffffff !important;
     }
-    
-    /* 탭 스타일 */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre-wrap;
-        background-color: rgba(255,255,255,0.05);
-        border-radius: 5px;
-        padding: 0 10px;
-    }
     </style>
     """
     st.markdown(common_style, unsafe_allow_html=True)
 
-    # 홈 화면 (배경 이미지)
+    # 홈 화면
     if current_menu == 'home':
         try:
             bin_str = get_base64_of_bin_file('bg.png')
@@ -176,15 +153,22 @@ def set_style(current_menu):
                 background-repeat: no-repeat;
                 background-attachment: fixed;
             }}
-            /* 오른쪽 하단 크레딧 (모바일에서도 잘 보이게 조정) */
+            .block-container {{
+                padding-top: 0rem;
+                padding-left: 1.5rem; /* 모바일 좌우 여백 */
+                padding-right: 1.5rem;
+                max-width: 100%;
+            }}
+            /* 오른쪽 하단 크레딧 */
             .footer-credit {{
                 position: fixed;
-                bottom: 10px;
-                right: 10px;
-                color: rgba(255, 255, 255, 0.5);
-                font-size: 0.8rem;
-                padding: 4px 10px;
-                background-color: rgba(0, 0, 0, 0.4);
+                bottom: 15px;
+                right: 20px;
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 0.9rem;
+                font-weight: 500;
+                padding: 5px 12px;
+                background-color: rgba(0, 0, 0, 0.3);
                 border-radius: 15px;
                 z-index: 9999;
             }}
@@ -194,7 +178,7 @@ def set_style(current_menu):
         except FileNotFoundError:
             st.error("배경화면 파일(bg.png)을 찾을 수 없습니다.")
     
-    # 상세 화면 (어두운 배경색)
+    # 상세 화면
     else:
         detail_style = """
         <style>
@@ -251,14 +235,18 @@ def get_dues_calc_info():
     return ref_date, months_passed
 
 # -----------------------------------------------------------------------------
-# 3. 화면 구성 (홈 화면)
+# 3. 화면 구성 (홈 화면) - [수정됨]
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'home':
-    # [모바일 최적화] 화면 분할 비율 조정
-    left_col, right_col = st.columns([1, 0.1]) # 오른쪽 여백을 거의 없앰
+    # 왼쪽(메뉴) : 오른쪽(여백) 비율
+    # 모바일에서는 이 비율이 무시되고 자동으로 위아래로 쌓이지만,
+    # 아래 spacer 높이로 위치를 조절합니다.
+    left_col, right_col = st.columns([1.5, 3])
     
     with left_col:
-        st.markdown("<div style='height: 25vh;'></div>", unsafe_allow_html=True)
+        # [수정] 화면 아래쪽으로 밀어내기 위해 높이를 대폭 키움 (55vh -> 화면의 55% 지점부터 시작)
+        st.markdown("<div style='height: 55vh;'></div>", unsafe_allow_html=True)
+        
         if st.button("🚪 회원 전체 현황"):
             st.session_state['menu'] = 'all_status'
             st.rerun()
@@ -275,9 +263,8 @@ if st.session_state['menu'] == 'home':
 
 def render_header(title):
     st.markdown('<div class="content-box">', unsafe_allow_html=True)
-    # [모바일 최적화] 헤더 버튼 배치 조정
-    c1, c2 = st.columns([7, 3])
-    with c1: st.markdown(f"### {title}") # 폰트 사이즈 조정
+    c1, c2 = st.columns([8, 2])
+    with c1: st.header(title)
     with c2:
         if st.button("🏠 홈으로"):
             st.session_state['menu'] = 'home'
@@ -292,8 +279,7 @@ def render_footer():
 if st.session_state['menu'] == 'personal_status':
     render_header("🔒 회원 개인 현황")
     
-    # [모바일 최적화] 모바일에서는 여백 없이 꽉 차게
-    col_center = st.container()
+    spacer_left, col_center, spacer_right = st.columns([1, 2, 1])
     
     with col_center:
         st.markdown(
@@ -396,6 +382,7 @@ if st.session_state['menu'] == 'all_status':
     total_due_target_per_person = 1000000 + (months_passed * 30000)
     
     with tab1:
+        # [1] 전체 입금액
         total_paid_sum = 0
         df_display = pd.DataFrame()
         
@@ -446,7 +433,7 @@ if st.session_state['menu'] == 'all_status':
             
         st.divider()
         
-        # 2. 지출액
+        # [2] 지출액
         exp_total = 0
         df_exp = pd.DataFrame()
         
@@ -476,7 +463,7 @@ if st.session_state['menu'] == 'all_status':
         
         st.divider()
 
-        # 3. 분석적 검토
+        # [3] 분석적 검토
         real_balance = 0
         if asset_amount_col and asset_name_col:
             try: 
