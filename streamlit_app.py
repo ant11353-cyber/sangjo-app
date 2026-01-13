@@ -7,7 +7,6 @@ import base64
 # -----------------------------------------------------------------------------
 # 1. 페이지 설정 (가장 먼저 실행)
 # -----------------------------------------------------------------------------
-# [수정] page_icon을 이모지에서 이미지 파일 경로("bg.png")로 변경
 st.set_page_config(page_title="천비칠마 상조회", page_icon="bg.png", layout="wide")
 
 # -----------------------------------------------------------------------------
@@ -194,16 +193,18 @@ def apply_theme_style(page_type="sub"):
             .block-container {{
                 padding-top: 0rem;
             }}
+            /* [수정] 저작권 표시 (중앙 하단 고정) */
             .footer-credit {{
                 position: fixed;
-                bottom: 10px;
-                right: 10px;
-                color: rgba(255, 255, 255, 0.5) !important;
-                font-size: 0.8rem;
-                padding: 4px 10px;
-                background-color: rgba(0, 0, 0, 0.4);
-                border-radius: 15px;
+                bottom: 20px;
+                left: 0;
+                width: 100%;
+                text-align: center;
+                color: rgba(255, 255, 255, 0.6) !important;
+                font-size: 0.85rem;
+                font-family: sans-serif;
                 z-index: 9999;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.8); /* 배경이 밝아도 글씨가 보이게 그림자 추가 */
             }}
             </style>
             """
@@ -242,11 +243,10 @@ def page_home():
     """홈 화면"""
     apply_theme_style("home")
     
-    # 왼쪽(1.2) : 오른쪽(4) 비율
+    # [왼쪽 메뉴 배치]
     left_col, right_col = st.columns([1.2, 4])
     
     with left_col:
-        # 화면 중간쯤에 오도록 빈 공간 추가
         st.markdown("<div style='height: 30vh;'></div>", unsafe_allow_html=True)
         
         # 버튼 클릭 시 해당 Page 객체로 이동
@@ -259,7 +259,8 @@ def page_home():
         if st.button("🚪 회칙 확인"):
             st.switch_page(rules)
             
-    st.markdown('<div class="footer-credit">Created by GSKim</div>', unsafe_allow_html=True)
+    # [수정] 저작권 표시 (Copyright 스타일)
+    st.markdown('<div class="footer-credit">Copyright © 2026 GS Kim. All rights reserved.</div>', unsafe_allow_html=True)
 
 
 def page_personal():
@@ -419,6 +420,7 @@ def page_all_status():
             exp_condolence = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금')]['금액'].sum()
             exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
             exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
+            
             exp_total = exp_condolence + exp_wreath + exp_meeting
             
             exp_data = {
@@ -498,7 +500,9 @@ def page_all_status():
                 df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
                 df_disp_ledger['내용'] = target_ledger['내용']
                 st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
-            
+            else:
+                st.warning("⚠️ '거래일시' 열을 찾을 수 없습니다.")
+
             st.divider()
             
             target_assets = df_assets[df_assets[asset_name_col].str.contains('적금', na=False)].copy()
@@ -551,7 +555,7 @@ def page_rules():
 # -----------------------------------------------------------------------------
 # 4. 네비게이션 설정 (핵심: 다중 페이지 구조로 변경 및 에러 해결)
 # -----------------------------------------------------------------------------
-# url_path에 슬래시('/')를 제거하고 단순한 문자열 사용
+# [수정] url_path에 슬래시('/')를 제거하고 단순한 문자열 사용
 home = st.Page(page_home, title="홈", url_path="home", default=True)
 status = st.Page(page_all_status, title="회원전체현황", url_path="status")
 personal = st.Page(page_personal, title="회원개인현황", url_path="personal")
