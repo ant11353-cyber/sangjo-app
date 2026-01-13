@@ -5,27 +5,64 @@ from dateutil.relativedelta import relativedelta
 import base64
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 및 디자인
+# 1. 페이지 초기 설정 (가장 먼저 실행되어야 함)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
-# [핵심 변경] 현재 페이지 확인 (URL 쿼리 파라미터 사용)
-# 브라우저의 주소창 정보를 읽어서 현재 어떤 페이지인지 판단합니다.
-# 이렇게 해야 휴대폰 '뒤로가기' 버튼이 작동합니다.
-query_params = st.query_params
-current_page = query_params.get("page", "home")
-
+# -----------------------------------------------------------------------------
+# 2. 공통 함수 및 스타일 정의
+# -----------------------------------------------------------------------------
 def get_base64_of_bin_file(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+    try:
+        with open(bin_file, 'rb') as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except:
+        return ""
 
-def set_style(page_name):
-    # 공통 스타일 (다크 모드 베이스)
-    common_style = """
+def format_comma(val):
+    try:
+        return f"{int(val):,}"
+    except:
+        return val
+
+def safe_int(value):
+    try:
+        return int(str(value).replace(',', '').replace(' ', ''))
+    except:
+        return 0
+
+@st.cache_data(ttl=60)
+def load_data(sheet_name):
+    try:
+        url = st.secrets["connections"]["sheet_url"]
+        if "/d/" in url:
+            sheet_id = url.split("/d/")[1].split("/")[0]
+            csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+            df = pd.read_csv(csv_url, dtype=str)
+            df.columns = df.columns.str.strip()
+            return df
+        else:
+            return pd.DataFrame()
+    except Exception:
+        return pd.DataFrame()
+
+def get_dues_calc_info():
+    today = datetime.now()
+    ref_date = today - relativedelta(months=1)
+    start_date = datetime(2020, 2, 1)
+    diff = relativedelta(ref_date, start_date)
+    months_passed = diff.years * 12 + diff.months
+    if months_passed < 0: months_passed = 0
+    return ref_date, months_passed
+
+# 스타일 적용 함수
+def apply_theme_style(page_type="sub"):
+    # 다크 모드 공통 스타일
+    common_css = """
     <style>
-    /* 전체 앱 텍스트 기본 색상 */
-    .stApp, .stMarkdown, .stText, h1, h2, h3, h4, h5, h6 {
+    /* 전체 앱 텍스트 색상 (흰색/회색) */
+    .stApp, .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, span, div {
         color: #e0e0e0 !important;
     }
     
@@ -36,37 +73,36 @@ def set_style(page_name):
         margin-bottom: 20px;
     }
     
-    /* [수정] PC 버튼 스타일 */
+    /* 버튼 스타일 (PC 기준) */
     .stButton > button {
         width: 100%;
-        height: 4.5rem; /* PC에서도 적당히 줄임 */
+        height: 4.5rem;
         border-radius: 50px;
         font-size: 1.2rem;
         font-weight: 600;
         transition: all 0.3s ease;
         margin-bottom: 12px;
         background-color: rgba(30, 30, 30, 0.8);
-        color: #ffffff;
+        color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.2);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     }
     .stButton > button:hover {
         background-color: rgba(50, 50, 50, 0.9);
         border-color: #ffcc00;
-        color: #ffcc00;
+        color: #ffcc00 !important;
         transform: scale(1.02);
     }
 
-    /* [재수정] 모바일 화면 최적화 (버튼 더 작게, 아래로) */
+    /* [모바일 최적화] 화면 폭 600px 이하 */
     @media only screen and (max-width: 600px) {
         .stButton > button {
-            height: 3.2rem !important;      /* 높이 더 축소 */
+            height: 3.2rem !important;
             min-height: 3.2rem !important;
-            font-size: 1rem !important;     /* 글자 크기 축소 */
+            font-size: 1rem !important;
             border-radius: 30px !important;
             margin-bottom: 8px !important;
         }
-        /* 홈 화면 상단 여백 제거 */
         .block-container {
             padding-left: 1rem !important;
             padding-right: 1rem !important;
@@ -83,14 +119,14 @@ def set_style(page_name):
         display: flex;
         justify-content: center;
         text-align: center;
-        color: #ffffff;
+        color: #ffffff !important;
         font-weight: bold;
     }
     [data-testid="stDataFrame"] div[role="gridcell"] {
         display: flex;
         justify-content: center;
         text-align: center;
-        color: #e0e0e0;
+        color: #e0e0e0 !important;
     }
     
     /* 결론 박스 */
@@ -99,7 +135,7 @@ def set_style(page_name):
         border: 1px solid rgba(255, 255, 255, 0.15);
         padding: 20px;
         border-radius: 10px;
-        color: #f0f0f0;
+        color: #f0f0f0 !important;
         font-weight: bold;
         font-size: 1.3rem;
         text-align: center;
@@ -111,7 +147,7 @@ def set_style(page_name):
     .interest-box {
         font-size: 1.5rem;
         font-weight: bold;
-        color: #81c784;
+        color: #81c784 !important;
         text-align: center;
         padding: 15px;
         background-color: rgba(255, 255, 255, 0.05);
@@ -126,7 +162,7 @@ def set_style(page_name):
         text-align: center;
         box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         margin-bottom: 20px;
-        color: #ffffff;
+        color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .highlight {
@@ -137,7 +173,7 @@ def set_style(page_name):
     /* 입력창 */
     .stTextInput input {
         background-color: rgba(255, 255, 255, 0.1);
-        color: #ffffff;
+        color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.2);
     }
     .stTextInput label {
@@ -145,13 +181,13 @@ def set_style(page_name):
     }
     </style>
     """
-    st.markdown(common_style, unsafe_allow_html=True)
+    st.markdown(common_css, unsafe_allow_html=True)
 
-    # 홈 화면 배경
-    if page_name == 'home':
+    # 배경 설정
+    if page_type == 'home':
         try:
             bin_str = get_base64_of_bin_file('bg.png')
-            home_style = f"""
+            bg_css = f"""
             <style>
             .stApp {{
                 background-image: url("data:image/png;base64,{bin_str}");
@@ -162,16 +198,12 @@ def set_style(page_name):
             }}
             .block-container {{
                 padding-top: 0rem;
-                padding-left: 1.5rem;
-                padding-right: 1.5rem;
-                max-width: 100%;
             }}
-            /* 크레딧 */
             .footer-credit {{
                 position: fixed;
                 bottom: 10px;
                 right: 10px;
-                color: rgba(255, 255, 255, 0.5);
+                color: rgba(255, 255, 255, 0.5) !important;
                 font-size: 0.8rem;
                 padding: 4px 10px;
                 background-color: rgba(0, 0, 0, 0.4);
@@ -180,109 +212,67 @@ def set_style(page_name):
             }}
             </style>
             """
-            st.markdown(home_style, unsafe_allow_html=True)
-        except FileNotFoundError:
+            st.markdown(bg_css, unsafe_allow_html=True)
+        except:
             st.error("배경화면 파일(bg.png)을 찾을 수 없습니다.")
     else:
-        # 상세 화면 배경 (어두운 색)
-        detail_style = """
+        bg_css = """
         <style>
         .stApp {
             background-image: none !important;
-            background-color: #121212 !important;
+            background-color: #121212 !important; /* 다크 배경 */
         }
         </style>
         """
-        st.markdown(detail_style, unsafe_allow_html=True)
+        st.markdown(bg_css, unsafe_allow_html=True)
 
-set_style(current_page)
-
-# -----------------------------------------------------------------------------
-# 2. 데이터 불러오기 및 계산 함수
-# -----------------------------------------------------------------------------
-@st.cache_data(ttl=60)
-def load_data(sheet_name):
-    try:
-        url = st.secrets["connections"]["sheet_url"]
-        if "/d/" in url:
-            sheet_id = url.split("/d/")[1].split("/")[0]
-            csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
-            df = pd.read_csv(csv_url, dtype=str)
-            df.columns = df.columns.str.strip()
-            return df
-        else:
-            return pd.DataFrame()
-    except Exception:
-        return pd.DataFrame()
-
-def safe_int(value):
-    try:
-        return int(str(value).replace(',', '').replace(' ', ''))
-    except:
-        return 0
-
-def format_comma(val):
-    try:
-        return f"{int(val):,}"
-    except:
-        return val
-
-def get_dues_calc_info():
-    today = datetime.now()
-    ref_date = today - relativedelta(months=1)
-    start_date = datetime(2020, 2, 1)
-    diff = relativedelta(ref_date, start_date)
-    months_passed = diff.years * 12 + diff.months
-    if months_passed < 0: months_passed = 0
-    return ref_date, months_passed
-
-# -----------------------------------------------------------------------------
-# 3. 화면 구성 (홈 화면)
-# -----------------------------------------------------------------------------
-if current_page == 'home':
-    # 왼쪽(1.2) : 오른쪽(4) 비율
-    left_col, right_col = st.columns([1.2, 4])
-    
-    with left_col:
-        # [수정] 아래쪽으로 더 내리기 (50vh = 화면 높이의 50%만큼 빈 공간)
-        st.markdown("<div style='height: 50vh;'></div>", unsafe_allow_html=True)
-        
-        # [핵심] 버튼 클릭 시 URL 파라미터 변경 후 리런 -> 뒤로가기 가능해짐
-        if st.button("🚪 회원 전체 현황"):
-            st.query_params["page"] = "all_status"
-            st.rerun()
-        st.write("") 
-        if st.button("🚪 회원 개인 현황"):
-            st.query_params["page"] = "personal_status"
-            st.rerun()
-        st.write("") 
-        if st.button("🚪 회칙 확인"):
-            st.query_params["page"] = "rules"
-            st.rerun()
-            
-    st.markdown('<div class="footer-credit">Created by GSKim</div>', unsafe_allow_html=True)
-
-# -----------------------------------------------------------------------------
-# 공통 헤더/푸터
-# -----------------------------------------------------------------------------
-def render_header(title):
+def render_header_nav(title):
+    """상세 페이지 상단 네비게이션"""
     st.markdown('<div class="content-box">', unsafe_allow_html=True)
     c1, c2 = st.columns([8, 2])
     with c1: st.header(title)
     with c2:
-        # 홈으로 가기 버튼도 URL 변경 방식 사용
+        # [핵심] st.switch_page를 사용하여 홈으로 이동 (URL 변경됨 -> 뒤로가기 가능)
         if st.button("🏠 홈으로"):
-            st.query_params["page"] = "home"
-            st.rerun()
+            st.switch_page("streamlit_app.py") # 메인 파일명으로 이동 (엔트리포인트)
 
-def render_footer():
+def render_footer_div():
     st.markdown('</div>', unsafe_allow_html=True)
 
+
 # -----------------------------------------------------------------------------
-# 4. 기능: 회원 개인 현황
+# 3. 각 페이지별 함수 정의 (중요: 함수로 분리됨)
 # -----------------------------------------------------------------------------
-if current_page == 'personal_status':
-    render_header("🔒 회원 개인 현황")
+
+def page_home():
+    """홈 화면"""
+    apply_theme_style("home")
+    
+    # 왼쪽(1.2) : 오른쪽(4) 비율
+    left_col, right_col = st.columns([1.2, 4])
+    
+    with left_col:
+        st.markdown("<div style='height: 30vh;'></div>", unsafe_allow_html=True)
+        
+        # [핵심] 각 버튼은 st.Page 객체의 title과 일치하는 곳으로 이동
+        if st.button("🚪 회원 전체 현황"):
+            st.switch_page("pages/all_status.py")
+            
+        st.write("") 
+        if st.button("🚪 회원 개인 현황"):
+            st.switch_page("pages/personal.py")
+            
+        st.write("") 
+        if st.button("🚪 회칙 확인"):
+            st.switch_page("pages/rules.py")
+            
+    st.markdown('<div class="footer-credit">Created by GSKim</div>', unsafe_allow_html=True)
+
+
+def page_personal():
+    """회원 개인 현황 페이지"""
+    apply_theme_style("sub")
+    render_header_nav("🔒 회원 개인 현황")
     
     spacer_left, col_center, spacer_right = st.columns([1, 2, 1])
     
@@ -290,7 +280,7 @@ if current_page == 'personal_status':
         st.markdown(
             """
             <div class="login-guide-box">
-                <h3 style="margin-top: 0; color: white;">🔑 아이디 확인</h3>
+                <h3 style="margin-top: 0;">🔑 아이디 확인</h3>
                 <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 5px;">
                     본인의 이메일 아이디 중 <b>아이디만</b> 입력해주세요.
                 </p>
@@ -301,7 +291,6 @@ if current_page == 'personal_status':
             """, 
             unsafe_allow_html=True
         )
-        
         user_id_input = st.text_input("아이디입력", placeholder="여기에 아이디를 입력하세요")
     
     if user_id_input:
@@ -355,14 +344,13 @@ if current_page == 'personal_status':
         else:
             with col_center:
                 st.error("일치하는 아이디가 없습니다. 다시 확인해주세요.")
-    
-    render_footer()
+    render_footer_div()
 
-# -----------------------------------------------------------------------------
-# 5. 기능: 회원 전체 현황
-# -----------------------------------------------------------------------------
-if current_page == 'all_status':
-    render_header("📊 회원전체현황")
+
+def page_all_status():
+    """회원 전체 현황 페이지"""
+    apply_theme_style("sub")
+    render_header_nav("📊 회원전체현황")
     
     df_members = load_data("members")
     df_ledger = load_data("ledger")
@@ -387,7 +375,6 @@ if current_page == 'all_status':
     total_due_target_per_person = 1000000 + (months_passed * 30000)
     
     with tab1:
-        # [1] 전체 입금액
         total_paid_sum = 0
         df_display = pd.DataFrame()
         
@@ -398,10 +385,8 @@ if current_page == 'all_status':
                 paid_total = 0
                 if '금액' in df_ledger.columns:
                     paid_total = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == name)]['금액'].sum()
-                
                 unpaid = total_due_target_per_person - paid_total
                 note = "미납" if unpaid > 0 else ("선납" if unpaid < 0 else "완납")
-                
                 analysis_data.append({
                     "회원명": name, 
                     "A.납부할금액": total_due_target_per_person, 
@@ -411,7 +396,6 @@ if current_page == 'all_status':
                 })
             
             df_analysis = pd.DataFrame(analysis_data)
-            
             total_due = df_analysis['A.납부할금액'].sum()
             total_paid_sum = df_analysis['B.납부한금액'].sum()
             total_diff = df_analysis['차이금액(=A-B)'].sum()
@@ -426,49 +410,36 @@ if current_page == 'all_status':
             df_display = pd.concat([df_analysis, total_row], ignore_index=True)
             
             st.subheader(f"1. 전체 입금내역 분석 : {format_comma(total_paid_sum)} 원")
-            
             cols_to_comma = ["A.납부할금액", "B.납부한금액", "차이금액(=A-B)"]
             for col in cols_to_comma:
                 df_display[col] = df_display[col].apply(format_comma)
-
             st.dataframe(df_display, use_container_width=True, hide_index=True)
         else:
-            st.subheader("1. 전체 입금내역 분석")
             st.warning("데이터가 없습니다.")
             
         st.divider()
         
-        # [2] 지출액
         exp_total = 0
-        df_exp = pd.DataFrame()
-        
         if '금액' in df_ledger.columns:
             exp_condolence = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금')]['금액'].sum()
             exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
             exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
-            
             exp_total = exp_condolence + exp_wreath + exp_meeting
             
             exp_data = {
                 "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 합계"],
-                "내용 설명": [
-                    "조의건당 1백만원",
-                    "조의건당 1십만원",
-                    "상조기 및 모임식대, 각종소포품 등",
-                    "=(1)+(2)+(3)"
-                ],
+                "내용 설명": ["조의건당 1백만원", "조의건당 1십만원", "상조기 및 모임식대, 각종소포품 등", "=(1)+(2)+(3)"],
                 "금액": [exp_condolence, exp_wreath, exp_meeting, exp_total]
             }
             df_exp = pd.DataFrame(exp_data)
             df_exp['금액'] = df_exp['금액'].apply(format_comma)
 
         st.subheader(f"2. 회비통장지출액 : {format_comma(exp_total)} 원")
-        if not df_exp.empty:
+        if '금액' in df_ledger.columns:
             st.dataframe(df_exp, use_container_width=True, hide_index=True)
         
         st.divider()
 
-        # [3] 분석적 검토
         real_balance = 0
         if asset_amount_col and asset_name_col:
             try: 
@@ -482,11 +453,7 @@ if current_page == 'all_status':
         
         review_data = {
             "구분": ["A. 장부상 잔액", "B. 실제 통장 잔액", "차이 (A-B)"],
-            "산출 근거": [
-                "전체 입금액 합계 - 회비통장 지출 총계",
-                "자산(assets) 시트의 회비통장 잔액",
-                "이자수익 및 적금불입액 등 차이"
-            ],
+            "산출 근거": ["전체 입금액 합계 - 회비통장 지출 총계", "자산(assets) 시트의 회비통장 잔액", "이자수익 및 적금불입액 등 차이"],
             "금액": [val_a, val_b, diff_final]
         }
         df_review = pd.DataFrame(review_data)
@@ -496,17 +463,8 @@ if current_page == 'all_status':
         st.dataframe(df_review, use_container_width=True, hide_index=True)
 
         st.divider()
-
-        # 4. 결론
         st.subheader("4. 결론")
-        st.markdown(
-            """
-            <div class="conclusion-box">
-            차이금액은 회비통장의 이자수익 등 미반영으로 차이 발생분으로 중요성관점에서 문제없음
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
+        st.markdown("""<div class="conclusion-box">차이금액은 회비통장의 이자수익 등 미반영으로 차이 발생분으로 중요성관점에서 문제없음</div>""", unsafe_allow_html=True)
 
     with tab2:
         st.subheader("보유 자산")
@@ -521,7 +479,6 @@ if current_page == 'all_status':
                 
                 df_assets_disp = df_assets.copy()
                 df_assets_disp[asset_amount_col] = df_assets_disp[asset_amount_col].apply(format_comma)
-                
                 st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
                 st.metric("총 자산", f"{format_comma(total_asset_val)} 원")
             else:
@@ -531,13 +488,8 @@ if current_page == 'all_status':
 
     with tab3:
         if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
-            
-            # 1. 적금가입원금
-            target_ledger = df_ledger[
-                df_ledger['구분'].str.contains('적금', na=False)
-            ].copy()
+            target_ledger = df_ledger[df_ledger['구분'].str.contains('적금', na=False)].copy()
             principal_sum = target_ledger['금액'].sum()
-            
             st.subheader(f"1. 적금가입원금 : {format_comma(principal_sum)} 원")
             
             date_col = None
@@ -550,17 +502,11 @@ if current_page == 'all_status':
                 df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
                 df_disp_ledger['내용'] = target_ledger['내용']
                 st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
-            else:
-                st.warning("⚠️ '거래일시' 열을 찾을 수 없습니다.")
-
-            st.divider()
-
-            # 2. 적금통장가입액
-            target_assets = df_assets[
-                df_assets[asset_name_col].str.contains('적금', na=False)
-            ].copy()
-            current_val_sum = target_assets[asset_amount_col].sum()
             
+            st.divider()
+            
+            target_assets = df_assets[df_assets[asset_name_col].str.contains('적금', na=False)].copy()
+            current_val_sum = target_assets[asset_amount_col].sum()
             st.subheader(f"2. 적금통장가입액(평가액) : {format_comma(current_val_sum)} 원")
             
             bank_col = None
@@ -571,38 +517,23 @@ if current_page == 'all_status':
             df_disp_assets['구분'] = target_assets[asset_name_col]
             df_disp_assets['은행'] = target_assets[bank_col] if bank_col else '-'
             df_disp_assets['잔액'] = target_assets[asset_amount_col].apply(format_comma)
-            
             st.dataframe(df_disp_assets, use_container_width=True, hide_index=True)
 
             st.divider()
-
-            # 3. 이자발생누적액
             interest = current_val_sum - principal_sum
             st.subheader(f"3. 이자발생누적액(2-1)")
             st.markdown(f"<div class='interest-box'>💰 {format_comma(interest)} 원</div>", unsafe_allow_html=True)
-
+            
             st.divider()
-
-            # 4. 총평
             st.subheader("4. 총평")
-            st.markdown(
-                """
-                <div class="conclusion-box">
-                회비는 매우 투명하게 관리되고 있으며, 입출금내역 검토시 설명할 수 없는 내역은 존재하지 아니함. 매우 훌륭하다고 평가됨
-                </div>
-                """, 
-                unsafe_allow_html=True
-            )
-        else:
-            st.warning("데이터를 불러올 수 없습니다. (장부나 자산 시트 확인 필요)")
+            st.markdown("""<div class="conclusion-box">회비는 매우 투명하게 관리되고 있으며, 입출금내역 검토시 설명할 수 없는 내역은 존재하지 아니함. 매우 훌륭하다고 평가됨</div>""", unsafe_allow_html=True)
+    render_footer_div()
 
-    render_footer()
 
-# -----------------------------------------------------------------------------
-# 6. 기능: 회칙
-# -----------------------------------------------------------------------------
-if current_page == 'rules':
-    render_header("📜 회칙 및 규정")
+def page_rules():
+    """회칙 페이지"""
+    apply_theme_style("sub")
+    render_header_nav("📜 회칙 및 규정")
     df_rules = load_data("rules")
     search_rule = st.text_input("규정 검색", placeholder="검색어를 입력하세요")
     
@@ -613,14 +544,24 @@ if current_page == 'rules':
         for idx, row in df_rules.iterrows():
             article = row.get('조항', '')
             title = row.get('제목', row.get('항목', ''))
+            header_text = f"{article}({title})" if title and str(title).lower() != 'nan' else article
             
-            if title and str(title).lower() != 'nan':
-                header_text = f"{article}({title})"
-            else:
-                header_text = article
-            
-            st.markdown(f"<div class='rule-header'>{header_text}</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='rule-content'>{row.get('내용', '-')}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='rule-header' style='font-weight:bold; font-size:1.1rem; color:#fff; margin-top:10px;'>{header_text}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='rule-content' style='color:#e0e0e0; margin-bottom:10px;'>{row.get('내용', '-')}</div>", unsafe_allow_html=True)
             st.divider()
-            
-    render_footer()
+    render_footer_div()
+
+
+# -----------------------------------------------------------------------------
+# 4. 네비게이션 설정 (핵심: 다중 페이지 구조로 변경)
+# -----------------------------------------------------------------------------
+# st.navigation을 사용하여 URL 라우팅을 관리합니다. 이렇게 해야 뒤로가기가 작동합니다.
+pg = st.navigation([
+    st.Page(page_home, title="홈", url_path="home"),
+    st.Page(page_all_status, title="회원전체현황", url_path="pages/all_status"),
+    st.Page(page_personal, title="회원개인현황", url_path="pages/personal"),
+    st.Page(page_rules, title="회칙", url_path="pages/rules"),
+], position="hidden") # position="hidden"으로 기본 사이드바 메뉴를 숨깁니다.
+
+# 선택된 페이지 실행
+pg.run()
