@@ -30,7 +30,7 @@ def set_style(current_menu):
         margin-bottom: 20px;
     }
     
-    /* 버튼 스타일 (달걀형, 다크 스타일) */
+    /* [기본] 버튼 스타일 (PC 기준 - 크고 시원하게) */
     .stButton > button {
         width: 100%;
         height: 6rem;
@@ -49,6 +49,23 @@ def set_style(current_menu):
         border-color: #ffcc00;
         color: #ffcc00;
         transform: scale(1.02);
+    }
+
+    /* [중요] 모바일 화면 최적화 (화면 폭 768px 이하일 때 적용) */
+    @media only screen and (max-width: 768px) {
+        /* 버튼 크기를 줄여서 조화롭게 만듦 */
+        .stButton > button {
+            height: 4rem !important;       /* 높이 축소 (6rem -> 4rem) */
+            min-height: 4rem !important;
+            font-size: 1.1rem !important;  /* 글자 크기 축소 (1.5rem -> 1.1rem) */
+            border-radius: 30px !important; /* 둥글기 조정 */
+            margin-bottom: 12px !important; /* 간격 조정 */
+        }
+        /* 홈 화면 상단 여백 조정 */
+        .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
     }
     
     /* 표(DataFrame) 스타일 커스텀 (다크 모드 대응) */
@@ -151,7 +168,7 @@ def set_style(current_menu):
                 border-radius: 15px;
                 z-index: 9999;
             }}
-            /* 상단 여백 제거 */
+            /* 상단 여백 제거 (모바일 media query에서 덮어씌워질 수 있음) */
             .block-container {{
                 padding-top: 0rem;
                 padding-left: 2rem;
@@ -220,7 +237,7 @@ def get_dues_calc_info():
     return ref_date, months_passed
 
 # -----------------------------------------------------------------------------
-# 3. 화면 구성 (홈 화면) - [수정됨: 왼쪽 세로 배치 복구]
+# 3. 화면 구성 (홈 화면)
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'home':
     # 왼쪽(메뉴 1.2) : 오른쪽(여백 4) 비율로 화면 분할
@@ -267,7 +284,7 @@ if st.session_state['menu'] == 'personal_status':
     spacer_left, col_center, spacer_right = st.columns([1, 2, 1])
     
     with col_center:
-        # 로그인 안내 박스
+        # 로그인 안내 박스 (다크 테마)
         st.markdown(
             """
             <div class="login-guide-box">
