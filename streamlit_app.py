@@ -18,7 +18,7 @@ def set_style(current_menu):
     # 공통 스타일 (다크 모드 베이스)
     common_style = """
     <style>
-    /* 전체 앱 텍스트 기본 색상 (흰색) */
+    /* 전체 폰트 색상 */
     .stApp, .stMarkdown, .stText, h1, h2, h3, h4, h5, h6 {
         color: #e0e0e0 !important;
     }
@@ -26,20 +26,19 @@ def set_style(current_menu):
     /* 컨텐츠 박스 (투명) */
     .content-box {
         background-color: transparent;
-        padding: 20px 0px;
+        padding: 10px 0px;
         margin-bottom: 20px;
     }
     
-    /* [수정] 버튼 스타일 (PC 기준) */
+    /* [수정] 버튼 스타일 (가로 배치에 맞게 높이 조절) */
     .stButton > button {
         width: 100%;
-        height: 4.5rem; /* 높이를 줄임 (6rem -> 4.5rem) */
-        border-radius: 50px;
-        font-size: 1.2rem; /* 글자 크기도 약간 조정 */
+        height: 4rem; /* 높이를 적당히 줄임 */
+        border-radius: 20px; /* 둥글게 */
+        font-size: 1.1rem;
         font-weight: 600;
         transition: all 0.3s ease;
-        margin-bottom: 12px;
-        background-color: rgba(30, 30, 30, 0.8);
+        background-color: rgba(30, 30, 30, 0.8); /* 반투명 검정 */
         color: #ffffff;
         border: 1px solid rgba(255, 255, 255, 0.2);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
@@ -50,97 +49,36 @@ def set_style(current_menu):
         color: #ffcc00;
         transform: scale(1.02);
     }
-
-    /* [중요] 모바일 화면(폭 600px 이하) 전용 스타일 */
-    @media only screen and (max-width: 600px) {
-        .stButton > button {
-            height: 3.5rem !important; /* 모바일에서는 더 작고 날렵하게 */
-            font-size: 1rem !important;
-            margin-bottom: 8px !important;
-            border-radius: 40px !important;
-        }
-        /* 홈 화면 하단 크레딧 위치 조정 */
-        .footer-credit {
-            bottom: 5px !important;
-            font-size: 0.7rem !important;
-        }
-    }
     
-    /* 표(DataFrame) 스타일 커스텀 */
+    /* 표 스타일 */
     [data-testid="stDataFrame"] {
         background-color: rgba(255, 255, 255, 0.05);
-        padding: 10px;
+        padding: 5px;
         border-radius: 10px;
-    }
-    [data-testid="stDataFrame"] div[role="columnheader"] {
-        display: flex;
-        justify-content: center;
-        text-align: center;
-        color: #ffffff;
-        font-weight: bold;
-    }
-    [data-testid="stDataFrame"] div[role="gridcell"] {
-        display: flex;
-        justify-content: center;
-        text-align: center;
-        color: #e0e0e0;
     }
     
-    /* 결론 박스 스타일 */
-    .conclusion-box {
-        background-color: rgba(0, 0, 0, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        padding: 25px;
-        border-radius: 10px;
-        color: #f0f0f0;
-        font-weight: bold;
-        font-size: 1.5rem;
-        text-align: center;
-        margin-top: 15px;
-        line-height: 1.6;
-    }
-    
-    /* 이자 강조 스타일 */
-    .interest-box {
-        font-size: 1.8rem;
-        font-weight: bold;
-        color: #81c784;
-        text-align: center;
-        padding: 20px;
-        background-color: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-    }
-
-    /* 로그인 안내 박스 */
+    /* 로그인 박스 */
     .login-guide-box {
         background-color: rgba(30, 30, 30, 0.8);
-        padding: 25px;
+        padding: 20px;
         border-radius: 15px;
         text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        margin-bottom: 20px;
-        color: #ffffff;
         border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .highlight {
-         color: #ffcc00 !important;
-         font-weight: bold;
+        margin-bottom: 20px;
     }
     
-    /* 입력창 스타일 */
-    .stTextInput input {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .stTextInput label {
-        color: #ffffff !important;
+    /* 크레딧 (맨 아래 중앙) */
+    .footer-credit {
+        text-align: center;
+        margin-top: 20px;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 0.8rem;
     }
     </style>
     """
     st.markdown(common_style, unsafe_allow_html=True)
 
-    # 홈 화면
+    # 홈 화면 (배경 이미지 설정)
     if current_menu == 'home':
         try:
             bin_str = get_base64_of_bin_file('bg.png')
@@ -148,29 +86,18 @@ def set_style(current_menu):
             <style>
             .stApp {{
                 background-image: url("data:image/png;base64,{bin_str}");
-                background-size: cover;
-                background-position: center;
+                background-size: cover; /* 화면 꽉 채우기 */
                 background-repeat: no-repeat;
                 background-attachment: fixed;
+                /* [중요] 배경 위치를 '위쪽 중앙'으로 고정하여 글자가 잘리지 않게 함 */
+                background-position: center top; 
             }}
+            /* 상단 여백 제거 */
             .block-container {{
                 padding-top: 0rem;
-                padding-left: 1.5rem; /* 모바일 좌우 여백 */
-                padding-right: 1.5rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
                 max-width: 100%;
-            }}
-            /* 오른쪽 하단 크레딧 */
-            .footer-credit {{
-                position: fixed;
-                bottom: 15px;
-                right: 20px;
-                color: rgba(255, 255, 255, 0.6);
-                font-size: 0.9rem;
-                font-weight: 500;
-                padding: 5px 12px;
-                background-color: rgba(0, 0, 0, 0.3);
-                border-radius: 15px;
-                z-index: 9999;
             }}
             </style>
             """
@@ -178,7 +105,7 @@ def set_style(current_menu):
         except FileNotFoundError:
             st.error("배경화면 파일(bg.png)을 찾을 수 없습니다.")
     
-    # 상세 화면
+    # 상세 화면 (어두운 배경)
     else:
         detail_style = """
         <style>
@@ -235,36 +162,39 @@ def get_dues_calc_info():
     return ref_date, months_passed
 
 # -----------------------------------------------------------------------------
-# 3. 화면 구성 (홈 화면) - [수정됨]
+# 3. 화면 구성 (홈 화면) - [수정됨: 하단 가로 배치]
 # -----------------------------------------------------------------------------
 if st.session_state['menu'] == 'home':
-    # 왼쪽(메뉴) : 오른쪽(여백) 비율
-    # 모바일에서는 이 비율이 무시되고 자동으로 위아래로 쌓이지만,
-    # 아래 spacer 높이로 위치를 조절합니다.
-    left_col, right_col = st.columns([1.5, 3])
     
-    with left_col:
-        # [수정] 화면 아래쪽으로 밀어내기 위해 높이를 대폭 키움 (55vh -> 화면의 55% 지점부터 시작)
-        st.markdown("<div style='height: 55vh;'></div>", unsafe_allow_html=True)
-        
-        if st.button("🚪 회원 전체 현황"):
+    # [1] 빈 공간 추가 (화면 위쪽 65%를 비워서 배경 그림이 보이게 함)
+    st.markdown("<div style='height: 65vh;'></div>", unsafe_allow_html=True)
+    
+    # [2] 메뉴 버튼을 가로로 3개 배치 (st.columns 사용)
+    # gap="small"로 버튼 사이 간격을 좁게 조정
+    col1, col2, col3 = st.columns(3, gap="small")
+    
+    with col1:
+        if st.button("📊 전체 현황"): # 버튼 이름 조금 짧게 수정 (모바일 고려)
             st.session_state['menu'] = 'all_status'
             st.rerun()
-        st.write("") 
-        if st.button("🚪 회원 개인 현황"):
+            
+    with col2:
+        if st.button("🔒 개인 현황"):
             st.session_state['menu'] = 'personal_status'
             st.rerun()
-        st.write("") 
-        if st.button("🚪 회칙 확인"):
+            
+    with col3:
+        if st.button("📜 회칙 확인"):
             st.session_state['menu'] = 'rules'
             st.rerun()
             
+    # 제작자 크레딧
     st.markdown('<div class="footer-credit">Created by GSKim</div>', unsafe_allow_html=True)
 
 def render_header(title):
     st.markdown('<div class="content-box">', unsafe_allow_html=True)
-    c1, c2 = st.columns([8, 2])
-    with c1: st.header(title)
+    c1, c2 = st.columns([7, 3])
+    with c1: st.subheader(title)
     with c2:
         if st.button("🏠 홈으로"):
             st.session_state['menu'] = 'home'
@@ -285,19 +215,19 @@ if st.session_state['menu'] == 'personal_status':
         st.markdown(
             """
             <div class="login-guide-box">
-                <h3 style="margin-top: 0; color: white;">🔑 아이디 확인</h3>
-                <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 5px;">
-                    본인의 이메일 아이디 중 <b>아이디만</b> 입력해주세요.
+                <h4 style="margin-top: 0; color: white;">🔑 아이디 확인</h4>
+                <p style="font-size: 1rem; margin-bottom: 5px;">
+                    이메일 아이디 중 <b>아이디만</b> 입력
                 </p>
-                <p style="font-size: 0.95rem; opacity: 0.8;">
-                    (예: "abc123@nate.com"이면 <b class="highlight">"abc123"</b>을 입력)
+                <p style="font-size: 0.8rem; opacity: 0.7;">
+                    (예: "abc@nate.com" -> <b style="color:#ffcc00">"abc"</b>)
                 </p>
             </div>
             """, 
             unsafe_allow_html=True
         )
         
-        user_id_input = st.text_input("아이디입력", placeholder="여기에 아이디를 입력하세요")
+        user_id_input = st.text_input("아이디입력", placeholder="아이디 입력")
     
     if user_id_input:
         df_members = load_data("members")
@@ -349,7 +279,7 @@ if st.session_state['menu'] == 'personal_status':
             else: st.info(f"👉 **선납액: {format_comma(abs(unpaid))} 원**")
         else:
             with col_center:
-                st.error("일치하는 아이디가 없습니다. 다시 확인해주세요.")
+                st.error("일치하는 아이디가 없습니다.")
     
     render_footer()
 
