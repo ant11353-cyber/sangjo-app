@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 import base64
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 초기 설정 (가장 먼저 실행되어야 함)
+# 1. 페이지 설정 (가장 먼저 실행)
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="📱", layout="wide")
 
@@ -21,16 +21,12 @@ def get_base64_of_bin_file(bin_file):
         return ""
 
 def format_comma(val):
-    try:
-        return f"{int(val):,}"
-    except:
-        return val
+    try: return f"{int(val):,}"
+    except: return val
 
 def safe_int(value):
-    try:
-        return int(str(value).replace(',', '').replace(' ', ''))
-    except:
-        return 0
+    try: return int(str(value).replace(',', '').replace(' ', ''))
+    except: return 0
 
 @st.cache_data(ttl=60)
 def load_data(sheet_name):
@@ -56,12 +52,11 @@ def get_dues_calc_info():
     if months_passed < 0: months_passed = 0
     return ref_date, months_passed
 
-# 스타일 적용 함수
 def apply_theme_style(page_type="sub"):
-    # 다크 모드 공통 스타일
+    # 다크 모드 공통 CSS
     common_css = """
     <style>
-    /* 전체 앱 텍스트 색상 (흰색/회색) */
+    /* 전체 텍스트 (흰색/회색) */
     .stApp, .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, span, div {
         color: #e0e0e0 !important;
     }
@@ -94,14 +89,14 @@ def apply_theme_style(page_type="sub"):
         transform: scale(1.02);
     }
 
-    /* [모바일 최적화] 화면 폭 600px 이하 */
+    /* [모바일 최적화] */
     @media only screen and (max-width: 600px) {
         .stButton > button {
-            height: 3.2rem !important;
-            min-height: 3.2rem !important;
+            height: 3.5rem !important;
+            min-height: 3.5rem !important;
             font-size: 1rem !important;
             border-radius: 30px !important;
-            margin-bottom: 8px !important;
+            margin-bottom: 10px !important;
         }
         .block-container {
             padding-left: 1rem !important;
@@ -109,7 +104,7 @@ def apply_theme_style(page_type="sub"):
         }
     }
     
-    /* 표 스타일 */
+    /* 표 스타일 (다크) */
     [data-testid="stDataFrame"] {
         background-color: rgba(255, 255, 255, 0.05);
         padding: 5px;
@@ -183,7 +178,6 @@ def apply_theme_style(page_type="sub"):
     """
     st.markdown(common_css, unsafe_allow_html=True)
 
-    # 배경 설정
     if page_type == 'home':
         try:
             bin_str = get_base64_of_bin_file('bg.png')
@@ -220,62 +214,57 @@ def apply_theme_style(page_type="sub"):
         <style>
         .stApp {
             background-image: none !important;
-            background-color: #121212 !important; /* 다크 배경 */
+            background-color: #121212 !important;
         }
         </style>
         """
         st.markdown(bg_css, unsafe_allow_html=True)
 
 def render_header_nav(title):
-    """상세 페이지 상단 네비게이션"""
     st.markdown('<div class="content-box">', unsafe_allow_html=True)
     c1, c2 = st.columns([8, 2])
     with c1: st.header(title)
     with c2:
-        # [핵심] st.switch_page를 사용하여 홈으로 이동 (URL 변경됨 -> 뒤로가기 가능)
         if st.button("🏠 홈으로"):
-            st.switch_page("streamlit_app.py") # 메인 파일명으로 이동 (엔트리포인트)
+            st.switch_page("streamlit_app.py") # 엔트리포인트(홈)로 이동
 
 def render_footer_div():
     st.markdown('</div>', unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
-# 3. 각 페이지별 함수 정의 (중요: 함수로 분리됨)
+# 3. 페이지별 함수 정의
 # -----------------------------------------------------------------------------
 
 def page_home():
     """홈 화면"""
     apply_theme_style("home")
     
-    # 왼쪽(1.2) : 오른쪽(4) 비율
+    # [왼쪽 메뉴 배치 복구]
     left_col, right_col = st.columns([1.2, 4])
     
     with left_col:
         st.markdown("<div style='height: 30vh;'></div>", unsafe_allow_html=True)
         
-        # [핵심] 각 버튼은 st.Page 객체의 title과 일치하는 곳으로 이동
+        # [수정] url_path를 'pages/xxx'가 아닌 'xxx'로 호출
         if st.button("🚪 회원 전체 현황"):
-            st.switch_page("pages/all_status.py")
-            
+            st.switch_page(status)
         st.write("") 
         if st.button("🚪 회원 개인 현황"):
-            st.switch_page("pages/personal.py")
-            
+            st.switch_page(personal)
         st.write("") 
         if st.button("🚪 회칙 확인"):
-            st.switch_page("pages/rules.py")
+            st.switch_page(rules)
             
     st.markdown('<div class="footer-credit">Created by GSKim</div>', unsafe_allow_html=True)
 
 
 def page_personal():
-    """회원 개인 현황 페이지"""
+    """회원 개인 현황"""
     apply_theme_style("sub")
     render_header_nav("🔒 회원 개인 현황")
     
     spacer_left, col_center, spacer_right = st.columns([1, 2, 1])
-    
     with col_center:
         st.markdown(
             """
@@ -348,7 +337,7 @@ def page_personal():
 
 
 def page_all_status():
-    """회원 전체 현황 페이지"""
+    """회원 전체 현황"""
     apply_theme_style("sub")
     render_header_nav("📊 회원전체현황")
     
@@ -394,7 +383,6 @@ def page_all_status():
                     "차이금액(=A-B)": unpaid, 
                     "상태": note
                 })
-            
             df_analysis = pd.DataFrame(analysis_data)
             total_due = df_analysis['A.납부할금액'].sum()
             total_paid_sum = df_analysis['B.납부한금액'].sum()
@@ -502,7 +490,9 @@ def page_all_status():
                 df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
                 df_disp_ledger['내용'] = target_ledger['내용']
                 st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
-            
+            else:
+                st.warning("⚠️ '거래일시' 열을 찾을 수 없습니다.")
+
             st.divider()
             
             target_assets = df_assets[df_assets[asset_name_col].str.contains('적금', na=False)].copy()
@@ -553,15 +543,13 @@ def page_rules():
 
 
 # -----------------------------------------------------------------------------
-# 4. 네비게이션 설정 (핵심: 다중 페이지 구조로 변경)
+# 4. 네비게이션 설정 (핵심: 다중 페이지 구조로 변경 및 에러 해결)
 # -----------------------------------------------------------------------------
-# st.navigation을 사용하여 URL 라우팅을 관리합니다. 이렇게 해야 뒤로가기가 작동합니다.
-pg = st.navigation([
-    st.Page(page_home, title="홈", url_path="home"),
-    st.Page(page_all_status, title="회원전체현황", url_path="pages/all_status"),
-    st.Page(page_personal, title="회원개인현황", url_path="pages/personal"),
-    st.Page(page_rules, title="회칙", url_path="pages/rules"),
-], position="hidden") # position="hidden"으로 기본 사이드바 메뉴를 숨깁니다.
+# [수정] url_path에 슬래시('/')를 제거하고 단순한 문자열 사용
+home = st.Page(page_home, title="홈", url_path="home", default=True)
+status = st.Page(page_all_status, title="회원전체현황", url_path="status")
+personal = st.Page(page_personal, title="회원개인현황", url_path="personal")
+rules = st.Page(page_rules, title="회칙", url_path="rules")
 
-# 선택된 페이지 실행
+pg = st.navigation([home, status, personal, rules], position="hidden")
 pg.run()
