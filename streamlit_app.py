@@ -225,8 +225,9 @@ def render_header_nav(title):
     c1, c2 = st.columns([8, 2])
     with c1: st.header(title)
     with c2:
+        # [수정 완료] 문자열 대신 Page 객체 'home'을 사용해야 함
         if st.button("🏠 홈으로"):
-            st.switch_page("streamlit_app.py") # 엔트리포인트(홈)로 이동
+            st.switch_page(home) 
 
 def render_footer_div():
     st.markdown('</div>', unsafe_allow_html=True)
@@ -246,7 +247,7 @@ def page_home():
     with left_col:
         st.markdown("<div style='height: 30vh;'></div>", unsafe_allow_html=True)
         
-        # [수정] url_path를 'pages/xxx'가 아닌 'xxx'로 호출
+        # 버튼 클릭 시 해당 Page 객체로 이동
         if st.button("🚪 회원 전체 현황"):
             st.switch_page(status)
         st.write("") 
@@ -269,7 +270,7 @@ def page_personal():
         st.markdown(
             """
             <div class="login-guide-box">
-                <h3 style="margin-top: 0;">🔑 아이디 확인</h3>
+                <h3 style="margin-top: 0; color: white;">🔑 아이디 확인</h3>
                 <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 5px;">
                     본인의 이메일 아이디 중 <b>아이디만</b> 입력해주세요.
                 </p>
@@ -364,6 +365,7 @@ def page_all_status():
     total_due_target_per_person = 1000000 + (months_passed * 30000)
     
     with tab1:
+        # [1] 전체 입금액
         total_paid_sum = 0
         df_display = pd.DataFrame()
         
@@ -407,7 +409,10 @@ def page_all_status():
             
         st.divider()
         
+        # [2] 지출액
         exp_total = 0
+        df_exp = pd.DataFrame()
+        
         if '금액' in df_ledger.columns:
             exp_condolence = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금')]['금액'].sum()
             exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
@@ -428,6 +433,7 @@ def page_all_status():
         
         st.divider()
 
+        # [3] 분석적 검토
         real_balance = 0
         if asset_amount_col and asset_name_col:
             try: 
@@ -490,9 +496,7 @@ def page_all_status():
                 df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
                 df_disp_ledger['내용'] = target_ledger['내용']
                 st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
-            else:
-                st.warning("⚠️ '거래일시' 열을 찾을 수 없습니다.")
-
+            
             st.divider()
             
             target_assets = df_assets[df_assets[asset_name_col].str.contains('적금', na=False)].copy()
