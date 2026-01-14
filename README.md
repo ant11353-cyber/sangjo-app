@@ -69,3 +69,20 @@
 
 ## © Copyright
 **Copyright © 2026 GS Kim. All rights reserved.**
+
+## 🎨 UI/UX Design System (2026.01.14 Update)
+
+본 프로젝트는 Python Streamlit 프레임워크를 사용하면서도, 기존의 투박한 데이터 분석 툴 느낌을 탈피하고 **모던 웹 앱(Web App)** 수준의 사용자 경험을 제공하기 위해 커스텀 디자인 시스템을 구축했습니다.
+
+### 1. Design Concept: "Premium & Trust"
+- **Color Palette:** 신뢰감을 주는 `Deep Black(#0a0a0a)` 배경에 `Gold(#FFD700)`를 포인트 컬러로 사용하여 고급스러운 상조회 이미지를 형상화했습니다.
+- **Atmosphere:** 은은한 조명이 비치는 듯한 Gradient Blur 효과를 배경에 적용하여 깊이감을 부여했습니다.
+
+### 2. UI Components (Glassmorphism)
+- **Dashboard Cards:** 반투명한 배경(`rgba`)과 `backdrop-filter: blur` 속성을 사용하여, 배경과 자연스럽게 어우러지는 유리 질감의 카드 UI를 구현했습니다.
+- **Input & Buttons:** - 딱딱한 직각형태를 버리고 `border-radius: 9999px`을 적용한 캡슐형 디자인 채택
+  - 마우스 호버(Hover) 시 부드러운 전환 효과(`transition`) 추가
+
+### 3. Technical Implementation
+- **Custom CSS Injection:** Streamlit의 제한된 스타일링 기능을 극복하기 위해 `st.markdown(unsafe_allow_html=True)`을 활용하여 CSS 변수를 직접 제어했습니다.
+- **Responsiveness:** 모바일과 데스크톱 환경 모두에서 가독성을 유지하도록 폰트 및 레이아웃을 최적화했습니다.
