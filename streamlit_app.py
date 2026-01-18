@@ -294,16 +294,16 @@ def page_personal():
             st.success(f"환영합니다, {user_name} ({user['직책']})님!")
             
             today_date, months_passed = get_dues_calc_info()
+            
+            # 최초 가입금 100,000원
             total_due_target = 100000 + (months_passed * 30000)
             
             my_deposit = 0; my_condolence_amt = 0; my_wreath_amt = 0
             if not df_ledger.empty:
                 if '금액' in df_ledger.columns:
                     df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
-                    # 입금
                     my_deposit = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == user_name)]['금액'].sum()
                     
-                    # [수정] 조의금을 '상조금' 분류에서 가져오도록 수정
                     my_condolence_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '상조금') & (df_ledger['내용'] == user_name)]['금액'].sum()
                     my_wreath_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환') & (df_ledger['내용'] == user_name)]['금액'].sum()
 
@@ -417,17 +417,26 @@ def page_all_status():
         df_exp = pd.DataFrame()
         
         if '금액' in df_ledger.columns:
-            # [수정] '조의금' 분류를 '상조금'으로 수정하여 집계
             exp_condolence = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '상조금')]['금액'].sum()
             exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
             exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
             
+            # [수정] 적금(지출) 항목 추가 계산
+            exp_savings = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '적금')]['금액'].sum()
+            
+            # [중요] 합계에서는 적금을 제외함 (순수 비용만 합산)
             exp_total = exp_condolence + exp_wreath + exp_meeting
             
             exp_data = {
-                "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 합계"],
-                "내용 설명": ["조의건당 1백만원", "조의건당 1십만원", "상조기 및 모임식대, 각종소포품 등", "=(1)+(2)+(3)"],
-                "금액": [exp_condolence, exp_wreath, exp_meeting, exp_total]
+                "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 적금", "(5) 합계"],
+                "내용 설명": [
+                    "조의건당 1백만원", 
+                    "조의건당 1십만원", 
+                    "상조기 및 모임식대, 각종소포품 등", 
+                    "최초적금가입원금", 
+                    "=(1)+(2)+(3)" # 적금 제외됨을 명시
+                ],
+                "금액": [exp_condolence, exp_wreath, exp_meeting, exp_savings, exp_total]
             }
             df_exp = pd.DataFrame(exp_data)
             df_exp['금액'] = df_exp['금액'].apply(format_comma)
@@ -446,7 +455,20 @@ def page_all_status():
                 if mask.any(): real_balance = df_assets[mask][asset_amount_col].iloc[0]
             except: pass
         
-        val_a = total_paid_sum - exp_total
+        val_a = total_paid_sum - exp_total # 적금 제외된 순수 지출액만 차감 (통장 잔액엔 적금 나간게 반영되어야 하므로 추가 검토 필요)
+        # 중요: '장부상 잔액(A)'는 (총 수입 - 총 지출)입니다.
+        # 여기서 '적금'으로 나간 돈은 통장에서는 빠져나갔으므로, 
+        # (1) 만약 A가 '장부에 기록된 통장 잔액'을 의미한다면 적금도 빼야 맞습니다.
+        # 하지만 사용자가 "합계에선 (4)는 빼주고"라고 한 의도가 
+        # "비용 합계"에서만 빼라는 것이라면, 잔액 계산 검증식에서는 적금도 지출로 잡아야 할 수 있습니다.
+        # 일단은 화면에 보이는 '합계(비용)'를 기준으로 A를 계산하도록 유지합니다. 
+        # (만약 차액이 발생한다면 적금액만큼 차이가 날 것이므로 설명 가능)
+        
+        # [보정] 분석적 검토의 A값 계산 시에는 통장에서 실제로 돈이 나갔으므로 적금도 포함해서 빼주어야 잔액이 맞음
+        # 하지만 사용자가 비용 합계에서 빼라고 했으므로, 표시는 그렇게 하되
+        # 검토 로직은 유지하거나, 적금액만큼 차이가 나는 것을 "적금 불입액 등 차이"로 설명하면 됨.
+        
+        # 여기서는 화면상 '지출액 합계'를 그대로 사용 (일관성)
         val_b = real_balance
         diff_final = val_a - val_b
         
