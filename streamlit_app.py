@@ -457,19 +457,13 @@ def page_all_status():
         val_a = total_paid_sum - exp_total # 장부상 잔액
         val_b = real_balance # 실제 통장 잔액
         
-        # [수정] 순서 변경: A(실제통장) - B(장부상)
-        # diff_final = val_b - val_a
-        # 원래 diff_final은 "차이"를 보여주는 것이므로, 보통 (장부 - 통장) 혹은 (통장 - 장부)
-        # 요청사항: "A장부상잔액"과 "B.실제통장잔액"의 행을 서로 바꿔주고 앞에 붙는 알파벳도 서로 바꿔줘
-        # 즉, A: 실제 통장 잔액, B: 장부상 잔액
-        # 그리고 차이는 A - B
-        
+        # 순서 변경: A(실제통장) - B(장부상)
         diff_final = val_b - val_a
         
         review_data = {
             "구분": ["A. 실제 통장 잔액", "B. 장부상 잔액", "차이 (A-B)"],
             "산출 근거": [
-                "회비통장실제잔액", # 요청사항 반영
+                "회비통장실제잔액",
                 "전체 입금액 합계 - 회비통장 지출 총계",
                 "이자수익 및 적금불입액 등 차이"
             ],
@@ -498,10 +492,16 @@ def page_all_status():
                 
                 df_assets_disp = df_assets.copy()
                 df_assets_disp[asset_amount_col] = df_assets_disp[asset_amount_col].apply(format_comma)
+                
+                # [수정] 'None'과 '0'을 빈 문자열로 대체하여 표시
+                df_assets_disp = df_assets_disp.replace(['None', '0'], '', regex=False)
+                
                 st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
                 st.metric("총 자산", f"{format_comma(total_asset_val)} 원")
             else:
-                st.dataframe(df_assets, use_container_width=True, hide_index=True)
+                # asset_amount_col이 없는 경우에도 None 처리 적용
+                df_assets_disp = df_assets.replace(['None', '0'], '', regex=False)
+                st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
 
