@@ -9,8 +9,8 @@ import base64
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="bg.png", layout="wide")
 
-# [▼▼▼ 카카오톡 공유 이미지(썸네일) 설정 코드 추가 ▼▼▼]
-# bg.png 파일의 실제 웹 주소를 og:image 태그에 넣습니다.
+# [▼▼▼ 카카오톡/링크 공유 미리보기 이미지 설정 코드 ▼▼▼]
+# 찾은 이미지 주소를 여기에 넣었습니다. 이제 카톡에 이 그림이 뜹니다.
 meta_tags = """
 <head>
     <meta property="og:title" content="천비칠마 상조회" />
@@ -21,7 +21,7 @@ meta_tags = """
 </head>
 """
 st.markdown(meta_tags, unsafe_allow_html=True)
-# [▲▲▲ 추가 끝 ▲▲▲]
+# [▲▲▲ 설정 끝 ▲▲▲]
 
 # -----------------------------------------------------------------------------
 # 2. 공통 함수 및 스타일 정의
@@ -436,6 +436,7 @@ def page_all_status():
             exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
             exp_savings = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '적금')]['금액'].sum()
             
+            # 합계에 적금 포함
             exp_total = exp_condolence + exp_wreath + exp_meeting + exp_savings
             
             exp_data = {
