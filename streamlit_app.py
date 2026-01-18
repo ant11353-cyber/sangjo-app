@@ -45,11 +45,9 @@ def load_data(sheet_name):
 
 def get_dues_calc_info():
     today = datetime.now()
-    # 시작일: 2020년 2월 1일
     start_date = datetime(2020, 2, 1)
     
-    # 경과 월수 계산 (현재월 포함 여부는 기존 로직 유지: 전달 말일까지 계산)
-    # 공식: (현재년 - 시작년)*12 + (현재월 - 시작월)
+    # 경과 월수 계산 (현재년 - 시작년)*12 + (현재월 - 시작월)
     months_passed = (today.year - start_date.year) * 12 + (today.month - start_date.month)
     
     if months_passed < 0: months_passed = 0
@@ -296,16 +294,17 @@ def page_personal():
             st.success(f"환영합니다, {user_name} ({user['직책']})님!")
             
             today_date, months_passed = get_dues_calc_info()
-            
-            # [수정] 최초 가입금 100,000원으로 변경
             total_due_target = 100000 + (months_passed * 30000)
             
             my_deposit = 0; my_condolence_amt = 0; my_wreath_amt = 0
             if not df_ledger.empty:
                 if '금액' in df_ledger.columns:
                     df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
+                    # 입금
                     my_deposit = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == user_name)]['금액'].sum()
-                    my_condolence_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금') & (df_ledger['내용'] == user_name)]['금액'].sum()
+                    
+                    # [수정] 조의금을 '상조금' 분류에서 가져오도록 수정
+                    my_condolence_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '상조금') & (df_ledger['내용'] == user_name)]['금액'].sum()
                     my_wreath_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환') & (df_ledger['내용'] == user_name)]['금액'].sum()
 
             unpaid = total_due_target - my_deposit
@@ -365,7 +364,6 @@ def page_all_status():
 
     tab1, tab2, tab3 = st.tabs(["분석적검토", "자산 현황", "이자 분석"])
     
-    # [수정] 최초 가입금 100,000원으로 변경
     _, months_passed = get_dues_calc_info()
     total_due_target_per_person = 100000 + (months_passed * 30000)
     
@@ -414,11 +412,16 @@ def page_all_status():
             
         st.divider()
         
+        # [2] 지출액
         exp_total = 0
+        df_exp = pd.DataFrame()
+        
         if '금액' in df_ledger.columns:
-            exp_condolence = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금')]['금액'].sum()
+            # [수정] '조의금' 분류를 '상조금'으로 수정하여 집계
+            exp_condolence = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '상조금')]['금액'].sum()
             exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
             exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
+            
             exp_total = exp_condolence + exp_wreath + exp_meeting
             
             exp_data = {
@@ -435,6 +438,7 @@ def page_all_status():
         
         st.divider()
 
+        # [3] 분석적 검토
         real_balance = 0
         if asset_amount_col and asset_name_col:
             try: 
