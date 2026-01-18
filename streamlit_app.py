@@ -294,16 +294,16 @@ def page_personal():
             st.success(f"환영합니다, {user_name} ({user['직책']})님!")
             
             today_date, months_passed = get_dues_calc_info()
-            
-            # 최초 가입금 100,000원
             total_due_target = 100000 + (months_passed * 30000)
             
             my_deposit = 0; my_condolence_amt = 0; my_wreath_amt = 0
             if not df_ledger.empty:
                 if '금액' in df_ledger.columns:
                     df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
+                    # 입금
                     my_deposit = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == user_name)]['금액'].sum()
                     
+                    # [수정] 조의금을 '상조금' 분류에서 가져오도록 수정
                     my_condolence_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '상조금') & (df_ledger['내용'] == user_name)]['금액'].sum()
                     my_wreath_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환') & (df_ledger['내용'] == user_name)]['금액'].sum()
 
@@ -417,26 +417,17 @@ def page_all_status():
         df_exp = pd.DataFrame()
         
         if '금액' in df_ledger.columns:
+            # [수정] '조의금' 분류를 '상조금'으로 수정하여 집계
             exp_condolence = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '상조금')]['금액'].sum()
             exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
             exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
             
-            # [수정] 적금(지출) 항목 추가 계산
-            exp_savings = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '적금')]['금액'].sum()
-            
-            # [중요] 합계에서는 적금을 제외함 (순수 비용만 합산)
             exp_total = exp_condolence + exp_wreath + exp_meeting
             
             exp_data = {
-                "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 적금", "(5) 합계"],
-                "내용 설명": [
-                    "조의건당 1백만원", 
-                    "조의건당 1십만원", 
-                    "상조기 및 모임식대, 각종소포품 등", 
-                    "최초적금가입원금", 
-                    "=(1)+(2)+(3)" # 적금 제외됨을 명시
-                ],
-                "금액": [exp_condolence, exp_wreath, exp_meeting, exp_savings, exp_total]
+                "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 합계"],
+                "내용 설명": ["조의건당 1백만원", "조의건당 1십만원", "상조기 및 모임식대, 각종소포품 등", "=(1)+(2)+(3)"],
+                "금액": [exp_condolence, exp_wreath, exp_meeting, exp_total]
             }
             df_exp = pd.DataFrame(exp_data)
             df_exp['금액'] = df_exp['금액'].apply(format_comma)
@@ -455,14 +446,118 @@ def page_all_status():
                 if mask.any(): real_balance = df_assets[mask][asset_amount_col].iloc[0]
             except: pass
         
-        val_a = total_paid_sum - exp_total # 적금 제외된 순수 지출액만 차감 (통장 잔액엔 적금 나간게 반영되어야 하므로 추가 검토 필요)
-        # 중요: '장부상 잔액(A)'는 (총 수입 - 총 지출)입니다.
-        # 여기서 '적금'으로 나간 돈은 통장에서는 빠져나갔으므로, 
-        # (1) 만약 A가 '장부에 기록된 통장 잔액'을 의미한다면 적금도 빼야 맞습니다.
-        # 하지만 사용자가 "합계에선 (4)는 빼주고"라고 한 의도가 
-        # "비용 합계"에서만 빼라는 것이라면, 잔액 계산 검증식에서는 적금도 지출로 잡아야 할 수 있습니다.
-        # 일단은 화면에 보이는 '합계(비용)'를 기준으로 A를 계산하도록 유지합니다. 
-        # (만약 차액이 발생한다면 적금액만큼 차이가 날 것이므로 설명 가능)
+        val_a = total_paid_sum - exp_total
+        val_b = real_balance
+        diff_final = val_a - val_b
         
-        # [보정] 분석적 검토의 A값 계산 시에는 통장에서 실제로 돈이 나갔으므로 적금도 포함해서 빼주어야 잔액이 맞음
-        # 하지만 사용자가 비용 합계에서 빼라고 했으므로, 표시는
+        review_data = {
+            "구분": ["A. 장부상 잔액", "B. 실제 통장 잔액", "차이 (A-B)"],
+            "산출 근거": ["전체 입금액 합계 - 회비통장 지출 총계", "자산(assets) 시트의 회비통장 잔액", "이자수익 및 적금불입액 등 차이"],
+            "금액": [val_a, val_b, diff_final]
+        }
+        df_review = pd.DataFrame(review_data)
+        df_review['금액'] = df_review['금액'].apply(format_comma)
+
+        st.subheader(f"3. 분석적검토 (차이: {format_comma(diff_final)} 원)")
+        st.dataframe(df_review, use_container_width=True, hide_index=True)
+
+        st.divider()
+        st.subheader("4. 결론")
+        st.markdown("""<div class="conclusion-box">차이금액은 회비통장의 이자수익 등 미반영으로 차이 발생분으로 중요성관점에서 문제없음</div>""", unsafe_allow_html=True)
+
+    with tab2:
+        st.subheader("보유 자산")
+        if not df_assets.empty:
+            total_asset_val = 0
+            if asset_amount_col:
+                if asset_name_col:
+                    mask = ~df_assets[asset_name_col].astype(str).str.contains('합계', na=False)
+                    total_asset_val = df_assets[mask][asset_amount_col].sum()
+                else:
+                    total_asset_val = df_assets[asset_amount_col].sum()
+                
+                df_assets_disp = df_assets.copy()
+                df_assets_disp[asset_amount_col] = df_assets_disp[asset_amount_col].apply(format_comma)
+                st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
+                st.metric("총 자산", f"{format_comma(total_asset_val)} 원")
+            else:
+                st.dataframe(df_assets, use_container_width=True, hide_index=True)
+        else:
+            st.warning("자산 데이터를 불러오지 못했습니다.")
+
+    with tab3:
+        if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
+            target_ledger = df_ledger[df_ledger['구분'].str.contains('적금', na=False)].copy()
+            principal_sum = target_ledger['금액'].sum()
+            st.subheader(f"1. 적금가입원금 : {format_comma(principal_sum)} 원")
+            
+            date_col = None
+            for col in ['거래일시', '날짜', '일시', 'Date']:
+                if col in target_ledger.columns: date_col = col; break
+            
+            if date_col:
+                df_disp_ledger = pd.DataFrame()
+                df_disp_ledger['거래일시'] = target_ledger[date_col]
+                df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
+                df_disp_ledger['내용'] = target_ledger['내용']
+                st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
+            
+            st.divider()
+            
+            target_assets = df_assets[df_assets[asset_name_col].str.contains('적금', na=False)].copy()
+            current_val_sum = target_assets[asset_amount_col].sum()
+            st.subheader(f"2. 적금통장가입액(평가액) : {format_comma(current_val_sum)} 원")
+            
+            bank_col = None
+            for col in ['은행', 'Bank', '금융기관', '은행명']:
+                if col in df_assets.columns: bank_col = col; break
+            
+            df_disp_assets = pd.DataFrame()
+            df_disp_assets['구분'] = target_assets[asset_name_col]
+            df_disp_assets['은행'] = target_assets[bank_col] if bank_col else '-'
+            df_disp_assets['잔액'] = target_assets[asset_amount_col].apply(format_comma)
+            st.dataframe(df_disp_assets, use_container_width=True, hide_index=True)
+
+            st.divider()
+            interest = current_val_sum - principal_sum
+            st.subheader(f"3. 이자발생누적액(2-1)")
+            st.markdown(f"<div class='interest-box'>💰 {format_comma(interest)} 원</div>", unsafe_allow_html=True)
+            
+            st.divider()
+            st.subheader("4. 총평")
+            st.markdown("""<div class="conclusion-box">회비는 매우 투명하게 관리되고 있으며, 입출금내역 검토시 설명할 수 없는 내역은 존재하지 아니함. 매우 훌륭하다고 평가됨</div>""", unsafe_allow_html=True)
+    render_footer_div()
+
+
+def page_rules():
+    """회칙 페이지"""
+    apply_theme_style("sub")
+    render_header_nav("📜 회칙 및 규정")
+    df_rules = load_data("rules")
+    search_rule = st.text_input("규정 검색", placeholder="검색어를 입력하세요")
+    
+    if not df_rules.empty:
+        if search_rule:
+            df_rules = df_rules[df_rules['내용'].str.contains(search_rule) | df_rules['조항'].str.contains(search_rule)]
+        
+        for idx, row in df_rules.iterrows():
+            article = row.get('조항', '')
+            title = row.get('제목', row.get('항목', ''))
+            header_text = f"{article}({title})" if title and str(title).lower() != 'nan' else article
+            
+            st.markdown(f"<div class='rule-header' style='font-weight:bold; font-size:1.1rem; color:#fff; margin-top:10px;'>{header_text}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='rule-content' style='color:#e0e0e0; margin-bottom:10px;'>{row.get('내용', '-')}</div>", unsafe_allow_html=True)
+            st.divider()
+    render_footer_div()
+
+
+# -----------------------------------------------------------------------------
+# 4. 네비게이션 설정
+# -----------------------------------------------------------------------------
+home = st.Page(page_home, title="홈", url_path="home", default=True)
+status = st.Page(page_all_status, title="회원전체현황", url_path="status")
+personal = st.Page(page_personal, title="회원개인현황", url_path="personal")
+rules = st.Page(page_rules, title="회칙", url_path="rules")
+
+pg = st.navigation([home, status, personal, rules], position="hidden")
+pg.run()
