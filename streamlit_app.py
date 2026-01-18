@@ -45,12 +45,15 @@ def load_data(sheet_name):
 
 def get_dues_calc_info():
     today = datetime.now()
-    ref_date = today - relativedelta(months=1)
+    # 시작일: 2020년 2월 1일
     start_date = datetime(2020, 2, 1)
-    diff = relativedelta(ref_date, start_date)
-    months_passed = diff.years * 12 + diff.months
+    
+    # 경과 월수 계산 (현재월 포함 여부는 기존 로직 유지: 전달 말일까지 계산)
+    # 공식: (현재년 - 시작년)*12 + (현재월 - 시작월)
+    months_passed = (today.year - start_date.year) * 12 + (today.month - start_date.month)
+    
     if months_passed < 0: months_passed = 0
-    return ref_date, months_passed
+    return today, months_passed
 
 def apply_theme_style(page_type="sub"):
     # 다크 모드 공통 CSS
@@ -193,18 +196,16 @@ def apply_theme_style(page_type="sub"):
             .block-container {{
                 padding-top: 0rem;
             }}
-            /* [수정] 저작권 표시 (중앙 하단 고정) */
             .footer-credit {{
                 position: fixed;
-                bottom: 20px;
-                left: 0;
-                width: 100%;
-                text-align: center;
-                color: rgba(255, 255, 255, 0.6) !important;
-                font-size: 0.85rem;
-                font-family: sans-serif;
+                bottom: 10px;
+                right: 10px;
+                color: rgba(255, 255, 255, 0.5) !important;
+                font-size: 0.8rem;
+                padding: 4px 10px;
+                background-color: rgba(0, 0, 0, 0.4);
+                border-radius: 15px;
                 z-index: 9999;
-                text-shadow: 1px 1px 2px rgba(0,0,0,0.8); /* 배경이 밝아도 글씨가 보이게 그림자 추가 */
             }}
             </style>
             """
@@ -227,7 +228,6 @@ def render_header_nav(title):
     c1, c2 = st.columns([8, 2])
     with c1: st.header(title)
     with c2:
-        # 문자열 대신 Page 객체 'home'을 사용해야 함
         if st.button("🏠 홈으로"):
             st.switch_page(home) 
 
@@ -243,13 +243,11 @@ def page_home():
     """홈 화면"""
     apply_theme_style("home")
     
-    # [왼쪽 메뉴 배치]
     left_col, right_col = st.columns([1.2, 4])
     
     with left_col:
         st.markdown("<div style='height: 30vh;'></div>", unsafe_allow_html=True)
         
-        # 버튼 클릭 시 해당 Page 객체로 이동
         if st.button("🚪 회원 전체 현황"):
             st.switch_page(status)
         st.write("") 
@@ -259,7 +257,6 @@ def page_home():
         if st.button("🚪 회칙 확인"):
             st.switch_page(rules)
             
-    # [수정] 저작권 표시 (Copyright 스타일)
     st.markdown('<div class="footer-credit">Copyright © 2026 GS Kim. All rights reserved.</div>', unsafe_allow_html=True)
 
 
@@ -298,8 +295,10 @@ def page_personal():
             user_name = user['성명']
             st.success(f"환영합니다, {user_name} ({user['직책']})님!")
             
-            ref_date, months_passed = get_dues_calc_info()
-            total_due_target = 1000000 + (months_passed * 30000)
+            today_date, months_passed = get_dues_calc_info()
+            
+            # [수정] 최초 가입금 100,000원으로 변경
+            total_due_target = 100000 + (months_passed * 30000)
             
             my_deposit = 0; my_condolence_amt = 0; my_wreath_amt = 0
             if not df_ledger.empty:
@@ -314,7 +313,8 @@ def page_personal():
             
             st.divider()
             st.subheader(f"📋 {user_name}님의 현황표")
-            st.caption(f"기준월: {ref_date.strftime('%Y년 %m월')}")
+            prev_month_date = today_date - relativedelta(months=1)
+            st.caption(f"기준월: {prev_month_date.strftime('%Y년 %m월')}")
             
             col_list1, col_list2 = st.columns(2)
             with col_list1:
@@ -364,8 +364,10 @@ def page_all_status():
             df_assets[asset_amount_col] = df_assets[asset_amount_col].apply(safe_int)
 
     tab1, tab2, tab3 = st.tabs(["분석적검토", "자산 현황", "이자 분석"])
-    ref_date, months_passed = get_dues_calc_info()
-    total_due_target_per_person = 1000000 + (months_passed * 30000)
+    
+    # [수정] 최초 가입금 100,000원으로 변경
+    _, months_passed = get_dues_calc_info()
+    total_due_target_per_person = 100000 + (months_passed * 30000)
     
     with tab1:
         # [1] 전체 입금액
@@ -412,15 +414,11 @@ def page_all_status():
             
         st.divider()
         
-        # [2] 지출액
         exp_total = 0
-        df_exp = pd.DataFrame()
-        
         if '금액' in df_ledger.columns:
             exp_condolence = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '조의금')]['금액'].sum()
             exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
             exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
-            
             exp_total = exp_condolence + exp_wreath + exp_meeting
             
             exp_data = {
@@ -437,7 +435,6 @@ def page_all_status():
         
         st.divider()
 
-        # [3] 분석적 검토
         real_balance = 0
         if asset_amount_col and asset_name_col:
             try: 
@@ -500,9 +497,7 @@ def page_all_status():
                 df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
                 df_disp_ledger['내용'] = target_ledger['내용']
                 st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
-            else:
-                st.warning("⚠️ '거래일시' 열을 찾을 수 없습니다.")
-
+            
             st.divider()
             
             target_assets = df_assets[df_assets[asset_name_col].str.contains('적금', na=False)].copy()
@@ -553,9 +548,8 @@ def page_rules():
 
 
 # -----------------------------------------------------------------------------
-# 4. 네비게이션 설정 (핵심: 다중 페이지 구조로 변경 및 에러 해결)
+# 4. 네비게이션 설정
 # -----------------------------------------------------------------------------
-# [수정] url_path에 슬래시('/')를 제거하고 단순한 문자열 사용
 home = st.Page(page_home, title="홈", url_path="home", default=True)
 status = st.Page(page_all_status, title="회원전체현황", url_path="status")
 personal = st.Page(page_personal, title="회원개인현황", url_path="personal")
