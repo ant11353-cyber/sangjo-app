@@ -9,6 +9,20 @@ import base64
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="천비칠마 상조회", page_icon="bg.png", layout="wide")
 
+# [▼▼▼ 카카오톡 공유 이미지(썸네일) 설정 코드 추가 ▼▼▼]
+# bg.png 파일의 실제 웹 주소를 og:image 태그에 넣습니다.
+meta_tags = """
+<head>
+    <meta property="og:title" content="천비칠마 상조회" />
+    <meta property="og:description" content="투명하고 편리한 모바일 회비 장부" />
+    <meta property="og:image" content="https://raw.githubusercontent.com/ant11353-cyber/sangjo-app/main/bg.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+</head>
+"""
+st.markdown(meta_tags, unsafe_allow_html=True)
+# [▲▲▲ 추가 끝 ▲▲▲]
+
 # -----------------------------------------------------------------------------
 # 2. 공통 함수 및 스타일 정의
 # -----------------------------------------------------------------------------
@@ -422,7 +436,6 @@ def page_all_status():
             exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
             exp_savings = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '적금')]['금액'].sum()
             
-            # 합계에 적금 포함
             exp_total = exp_condolence + exp_wreath + exp_meeting + exp_savings
             
             exp_data = {
@@ -491,14 +504,12 @@ def page_all_status():
                 df_assets_disp = df_assets.copy()
                 df_assets_disp[asset_amount_col] = df_assets_disp[asset_amount_col].apply(format_comma)
                 
-                # [수정] 'None', '0' 등의 값을 빈 문자열로 완벽하게 치환
-                df_assets_disp = df_assets_disp.astype(str) # 먼저 문자열로 변환
+                df_assets_disp = df_assets_disp.astype(str)
                 df_assets_disp = df_assets_disp.replace({'None': '', 'nan': '', '0': '', '0.0': ''}, regex=False)
                 
                 st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
                 st.metric("총 자산", f"{format_comma(total_asset_val)} 원")
             else:
-                # 안전장치
                 df_assets_disp = df_assets.astype(str).replace({'None': '', 'nan': '', '0': '', '0.0': ''}, regex=False)
                 st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
         else:
@@ -507,8 +518,6 @@ def page_all_status():
     with tab3:
         if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
             
-            # [수정] 적금 가입 원금 데이터 추출
-            # 조건: '분류'가 '적금'인 항목 (기존에는 '구분'에서 찾아서 0건이었음)
             target_ledger = df_ledger[df_ledger['분류'] == '적금'].copy()
             principal_sum = target_ledger['금액'].sum()
             
@@ -516,10 +525,8 @@ def page_all_status():
             
             if not target_ledger.empty:
                 df_disp_ledger = pd.DataFrame()
-                # 거래일시와 금액 가져오기
                 df_disp_ledger['거래일시'] = target_ledger['거래일시']
                 df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
-                # 내용은 '적금원금'으로 고정 표시
                 df_disp_ledger['내용'] = "적금원금"
                 st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
             else:
