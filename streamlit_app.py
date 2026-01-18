@@ -420,7 +420,6 @@ def page_all_status():
             exp_condolence = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '상조금')]['금액'].sum()
             exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
             exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
-            
             exp_savings = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '적금')]['금액'].sum()
             
             # 합계에 적금 포함
@@ -457,7 +456,6 @@ def page_all_status():
         val_a = total_paid_sum - exp_total # 장부상 잔액
         val_b = real_balance # 실제 통장 잔액
         
-        # 순서 변경: A(실제통장) - B(장부상)
         diff_final = val_b - val_a
         
         review_data = {
@@ -493,34 +491,39 @@ def page_all_status():
                 df_assets_disp = df_assets.copy()
                 df_assets_disp[asset_amount_col] = df_assets_disp[asset_amount_col].apply(format_comma)
                 
-                # [수정] 'None'과 '0'을 빈 문자열로 대체하여 표시
-                df_assets_disp = df_assets_disp.replace(['None', '0'], '', regex=False)
+                # [수정] 'None', '0' 등의 값을 빈 문자열로 완벽하게 치환
+                df_assets_disp = df_assets_disp.astype(str) # 먼저 문자열로 변환
+                df_assets_disp = df_assets_disp.replace({'None': '', 'nan': '', '0': '', '0.0': ''}, regex=False)
                 
                 st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
                 st.metric("총 자산", f"{format_comma(total_asset_val)} 원")
             else:
-                # asset_amount_col이 없는 경우에도 None 처리 적용
-                df_assets_disp = df_assets.replace(['None', '0'], '', regex=False)
+                # 안전장치
+                df_assets_disp = df_assets.astype(str).replace({'None': '', 'nan': '', '0': '', '0.0': ''}, regex=False)
                 st.dataframe(df_assets_disp, use_container_width=True, hide_index=True)
         else:
             st.warning("자산 데이터를 불러오지 못했습니다.")
 
     with tab3:
         if not df_ledger.empty and not df_assets.empty and asset_amount_col and asset_name_col and '금액' in df_ledger.columns:
-            target_ledger = df_ledger[df_ledger['구분'].str.contains('적금', na=False)].copy()
+            
+            # [수정] 적금 가입 원금 데이터 추출
+            # 조건: '분류'가 '적금'인 항목 (기존에는 '구분'에서 찾아서 0건이었음)
+            target_ledger = df_ledger[df_ledger['분류'] == '적금'].copy()
             principal_sum = target_ledger['금액'].sum()
+            
             st.subheader(f"1. 적금가입원금 : {format_comma(principal_sum)} 원")
             
-            date_col = None
-            for col in ['거래일시', '날짜', '일시', 'Date']:
-                if col in target_ledger.columns: date_col = col; break
-            
-            if date_col:
+            if not target_ledger.empty:
                 df_disp_ledger = pd.DataFrame()
-                df_disp_ledger['거래일시'] = target_ledger[date_col]
+                # 거래일시와 금액 가져오기
+                df_disp_ledger['거래일시'] = target_ledger['거래일시']
                 df_disp_ledger['금액'] = target_ledger['금액'].apply(format_comma)
-                df_disp_ledger['내용'] = target_ledger['내용']
+                # 내용은 '적금원금'으로 고정 표시
+                df_disp_ledger['내용'] = "적금원금"
                 st.dataframe(df_disp_ledger, use_container_width=True, hide_index=True)
+            else:
+                st.info("적금 가입 내역이 없습니다.")
             
             st.divider()
             
