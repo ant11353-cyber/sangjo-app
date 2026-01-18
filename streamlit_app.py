@@ -423,7 +423,7 @@ def page_all_status():
             
             exp_savings = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '적금')]['금액'].sum()
             
-            # [수정] 합계에 적금 포함
+            # 합계에 적금 포함
             exp_total = exp_condolence + exp_wreath + exp_meeting + exp_savings
             
             exp_data = {
@@ -433,7 +433,7 @@ def page_all_status():
                     "조의건당 1십만원", 
                     "상조기 및 모임식대, 각종소포품 등", 
                     "최초적금가입원금", 
-                    "=(1)+(2)+(3)+(4)" # 설명 수정
+                    "=(1)+(2)+(3)+(4)"
                 ],
                 "금액": [exp_condolence, exp_wreath, exp_meeting, exp_savings, exp_total]
             }
@@ -454,16 +454,26 @@ def page_all_status():
                 if mask.any(): real_balance = df_assets[mask][asset_amount_col].iloc[0]
             except: pass
         
-        # 합계에 적금이 포함되었으므로 val_a 계산은 자동으로 (수입 - (지출+적금))이 됨
-        # 이는 '현재 메인 통장 잔액'을 의미하므로 논리적으로 맞음
-        val_a = total_paid_sum - exp_total 
-        val_b = real_balance
-        diff_final = val_a - val_b
+        val_a = total_paid_sum - exp_total # 장부상 잔액
+        val_b = real_balance # 실제 통장 잔액
+        
+        # [수정] 순서 변경: A(실제통장) - B(장부상)
+        # diff_final = val_b - val_a
+        # 원래 diff_final은 "차이"를 보여주는 것이므로, 보통 (장부 - 통장) 혹은 (통장 - 장부)
+        # 요청사항: "A장부상잔액"과 "B.실제통장잔액"의 행을 서로 바꿔주고 앞에 붙는 알파벳도 서로 바꿔줘
+        # 즉, A: 실제 통장 잔액, B: 장부상 잔액
+        # 그리고 차이는 A - B
+        
+        diff_final = val_b - val_a
         
         review_data = {
-            "구분": ["A. 장부상 잔액", "B. 실제 통장 잔액", "차이 (A-B)"],
-            "산출 근거": ["전체 입금액 합계 - 회비통장 지출 총계", "자산(assets) 시트의 회비통장 잔액", "이자수익 및 적금불입액 등 차이"],
-            "금액": [val_a, val_b, diff_final]
+            "구분": ["A. 실제 통장 잔액", "B. 장부상 잔액", "차이 (A-B)"],
+            "산출 근거": [
+                "회비통장실제잔액", # 요청사항 반영
+                "전체 입금액 합계 - 회비통장 지출 총계",
+                "이자수익 및 적금불입액 등 차이"
+            ],
+            "금액": [val_b, val_a, diff_final]
         }
         df_review = pd.DataFrame(review_data)
         df_review['금액'] = df_review['금액'].apply(format_comma)
