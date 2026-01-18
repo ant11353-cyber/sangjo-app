@@ -421,11 +421,10 @@ def page_all_status():
             exp_wreath = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환')]['금액'].sum()
             exp_meeting = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '회의비외')]['금액'].sum()
             
-            # [수정] 적금(지출) 항목 추가 계산
             exp_savings = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '적금')]['금액'].sum()
             
-            # [중요] 합계에서는 적금을 제외함 (순수 비용만 합산)
-            exp_total = exp_condolence + exp_wreath + exp_meeting
+            # [수정] 합계에 적금 포함
+            exp_total = exp_condolence + exp_wreath + exp_meeting + exp_savings
             
             exp_data = {
                 "지출 항목": ["(1) 조의금", "(2) 근조화환", "(3) 회의비등", "(4) 적금", "(5) 합계"],
@@ -434,7 +433,7 @@ def page_all_status():
                     "조의건당 1십만원", 
                     "상조기 및 모임식대, 각종소포품 등", 
                     "최초적금가입원금", 
-                    "=(1)+(2)+(3)" # 적금 제외됨을 명시
+                    "=(1)+(2)+(3)+(4)" # 설명 수정
                 ],
                 "금액": [exp_condolence, exp_wreath, exp_meeting, exp_savings, exp_total]
             }
@@ -455,20 +454,9 @@ def page_all_status():
                 if mask.any(): real_balance = df_assets[mask][asset_amount_col].iloc[0]
             except: pass
         
-        val_a = total_paid_sum - exp_total # 적금 제외된 순수 지출액만 차감 (통장 잔액엔 적금 나간게 반영되어야 하므로 추가 검토 필요)
-        # 중요: '장부상 잔액(A)'는 (총 수입 - 총 지출)입니다.
-        # 여기서 '적금'으로 나간 돈은 통장에서는 빠져나갔으므로, 
-        # (1) 만약 A가 '장부에 기록된 통장 잔액'을 의미한다면 적금도 빼야 맞습니다.
-        # 하지만 사용자가 "합계에선 (4)는 빼주고"라고 한 의도가 
-        # "비용 합계"에서만 빼라는 것이라면, 잔액 계산 검증식에서는 적금도 지출로 잡아야 할 수 있습니다.
-        # 일단은 화면에 보이는 '합계(비용)'를 기준으로 A를 계산하도록 유지합니다. 
-        # (만약 차액이 발생한다면 적금액만큼 차이가 날 것이므로 설명 가능)
-        
-        # [보정] 분석적 검토의 A값 계산 시에는 통장에서 실제로 돈이 나갔으므로 적금도 포함해서 빼주어야 잔액이 맞음
-        # 하지만 사용자가 비용 합계에서 빼라고 했으므로, 표시는 그렇게 하되
-        # 검토 로직은 유지하거나, 적금액만큼 차이가 나는 것을 "적금 불입액 등 차이"로 설명하면 됨.
-        
-        # 여기서는 화면상 '지출액 합계'를 그대로 사용 (일관성)
+        # 합계에 적금이 포함되었으므로 val_a 계산은 자동으로 (수입 - (지출+적금))이 됨
+        # 이는 '현재 메인 통장 잔액'을 의미하므로 논리적으로 맞음
+        val_a = total_paid_sum - exp_total 
         val_b = real_balance
         diff_final = val_a - val_b
         
