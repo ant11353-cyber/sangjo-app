@@ -7,21 +7,20 @@ import base64
 # -----------------------------------------------------------------------------
 # 1. 페이지 설정 (가장 먼저 실행)
 # -----------------------------------------------------------------------------
-st.set_page_config(page_title="천비칠마 상조회", page_icon="bg.png", layout="wide")
+# [수정 1] 아이콘을 bg.jpg로 변경
+st.set_page_config(page_title="천비칠마 상조회", page_icon="bg.jpg", layout="wide")
 
-# [▼▼▼ 카카오톡/링크 공유 미리보기 이미지 설정 코드 ▼▼▼]
-# 찾은 이미지 주소를 여기에 넣었습니다. 이제 카톡에 이 그림이 뜹니다.
+# [수정 2] 카카오톡 미리보기 이미지 주소를 bg.jpg로 변경
 meta_tags = """
 <head>
     <meta property="og:title" content="천비칠마 상조회" />
     <meta property="og:description" content="투명하고 편리한 모바일 회비 장부" />
-    <meta property="og:image" content="https://raw.githubusercontent.com/ant11353-cyber/sangjo-app/main/bg.png" />
+    <meta property="og:image" content="https://raw.githubusercontent.com/ant11353-cyber/sangjo-app/main/bg.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 </head>
 """
 st.markdown(meta_tags, unsafe_allow_html=True)
-# [▲▲▲ 설정 끝 ▲▲▲]
 
 # -----------------------------------------------------------------------------
 # 2. 공통 함수 및 스타일 정의
@@ -195,7 +194,14 @@ def apply_theme_style(page_type="sub"):
 
     if page_type == 'home':
         try:
-            bin_str = get_base64_of_bin_file('bg.png')
+            # [수정 3] 배경 이미지도 bg.jpg를 읽도록 변경
+            bin_str = get_base64_of_bin_file('bg.jpg')
+            
+            # 혹시나 파일이 없을 경우를 대비해 예외 처리 강화
+            if not bin_str:
+                 # bg.jpg 읽기 실패시 bg.png 시도 (안전장치)
+                 bin_str = get_base64_of_bin_file('bg.png')
+
             bg_css = f"""
             <style>
             .stApp {{
@@ -223,7 +229,7 @@ def apply_theme_style(page_type="sub"):
             """
             st.markdown(bg_css, unsafe_allow_html=True)
         except:
-            st.error("배경화면 파일(bg.png)을 찾을 수 없습니다.")
+            st.error("배경화면 파일(bg.jpg)을 찾을 수 없습니다.")
     else:
         bg_css = """
         <style>
