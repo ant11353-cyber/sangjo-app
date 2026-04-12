@@ -131,7 +131,7 @@ def make_gauge_chart(paid, total, title="납부율"):
 
 def make_donut_chart(labels, values, title="자산 구성"):
     """자산 구성 도넛 차트"""
-    colors = ['#FFD700', '#4FC3F7', '#81C784', '#FF8A65', '#CE93D8', '#F48FB1']
+    colors = ['#4CAF50', '#EF5350', '#4FC3F7', '#FF8A65', '#CE93D8', '#F48FB1']
     fig = go.Figure(go.Pie(
         labels=labels,
         values=values,
@@ -571,16 +571,12 @@ def page_home():
     left_col, right_col = st.columns([1.2, 4])
     with left_col:
         st.markdown("<div style='height: 28vh;'></div>", unsafe_allow_html=True)
-        st.markdown('<div class="home-btn-wrap">', unsafe_allow_html=True)
         if st.button("📊 회원 전체 현황", key="btn_status"):
             st.switch_page(status)
-        st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
         if st.button("👤 회원 개인 현황", key="btn_personal"):
             st.switch_page(personal)
-        st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
         if st.button("📜 회칙 확인", key="btn_rules"):
             st.switch_page(rules)
-        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="footer-credit">© 2026 GS Kim. All rights reserved.</div>', unsafe_allow_html=True)
 
