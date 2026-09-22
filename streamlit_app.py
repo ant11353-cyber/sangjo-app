@@ -59,7 +59,7 @@ def load_data(sheet_name):
 def get_dues_calc_info():
     today = datetime.now()
     start_date = datetime(2020, 2, 1)
-    months_passed = (today.year - start_date.year) * 12 + (today.month - start_date.month)
+    months_passed = (today.year - start_date.year) * 12 + (today.month - start_date.month)+1
     if months_passed < 0: months_passed = 0
     return today, months_passed
 
@@ -744,7 +744,7 @@ def page_all_status():
             st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
             k1, k2, k3, k4 = st.columns(4)
             total_members   = len(df_analysis)
-            complete_count  = (df_analysis['상태'] == '완납').sum()
+            complete_count = (df_analysis['상태'].isin(['완납', '선납'])).sum()
             unpaid_count    = (df_analysis['상태'] == '미납').sum()
             overall_rate    = (total_paid_sum / (total_due_per_person * total_members) * 100) if total_members > 0 else 0
 
