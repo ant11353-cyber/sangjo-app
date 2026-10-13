@@ -424,6 +424,8 @@ def page_home():
             st.switch_page(personal)
         if st.button("三 · 회칙 확인", key="btn_rules"):
             st.switch_page(rules)
+        if st.button("四 · 이력회원", key="btn_history"):
+            st.switch_page(history)
 
     st.markdown('<div class="footer-credit">© 2026 GS Kim. All rights reserved.</div>', unsafe_allow_html=True)
 
@@ -736,6 +738,53 @@ def page_rules():
     else:
         st.info("회칙 데이터를 불러오는 중입니다.")
 
+
+def page_history():
+    apply_theme_style("sub")
+    render_header_nav("이력회원", seal_text="履歷")
+
+    df = load_data("history")
+    if df.empty or '금액' not in df.columns:
+        st.warning("이력회원 데이터를 불러오지 못했습니다.")
+        return
+
+    for col in ['구분', '내용', '분류']:
+        if col in df.columns: df[col] = df[col].astype(str).str.strip()
+    df['금액'] = df['금액'].apply(safe_int)
+
+    dep = df[df['구분'] == '입금'].groupby('내용')['금액'].sum()
+    wd  = df[df['구분'] == '출금'].groupby('내용')['금액'].sum()
+    df_sum = pd.concat([dep.rename('입금 합계'), wd.rename('출금 합계')], axis=1).fillna(0).astype(int)
+    df_sum['차액(입금-출금)'] = df_sum['입금 합계'] - df_sum['출금 합계']
+    df_sum.index.name = '회원명'
+    df_sum = df_sum.reset_index()
+
+    total_in  = df_sum['입금 합계'].sum()
+    total_out = df_sum['출금 합계'].sum()
+
+    k1, k2, k3, k4 = st.columns(4)
+    with k1: st.markdown(kpi_card("이력회원", len(df_sum), "", "명"), unsafe_allow_html=True)
+    with k2: st.markdown(kpi_card("입금 합계", format_comma(total_in), "green", "원"), unsafe_allow_html=True)
+    with k3: st.markdown(kpi_card("출금 합계", format_comma(total_out), "red", "원"), unsafe_allow_html=True)
+    with k4: st.markdown(kpi_card("차액", format_comma(total_in - total_out), "gold", "원"), unsafe_allow_html=True)
+
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
+    section_header("一. 회원별 입출금")
+    df_disp = pd.concat([df_sum, pd.DataFrame([{
+        '회원명': '합계', '입금 합계': total_in, '출금 합계': total_out, '차액(입금-출금)': total_in - total_out
+    }])], ignore_index=True)
+    for c in ['입금 합계', '출금 합계', '차액(입금-출금)']:
+        df_disp[c] = df_disp[c].apply(format_comma)
+    st.dataframe(df_disp, use_container_width=True, hide_index=True)
+
+    st.divider()
+
+    section_header("二. 전체 거래 내역", f"<b>{len(df)}</b>건")
+    df_tx = df.copy()
+    df_tx['금액'] = df_tx['금액'].apply(format_comma)
+    st.dataframe(df_tx, use_container_width=True, hide_index=True)
+
 # -----------------------------------------------------------------------------
 # 7. 네비게이션
 # -----------------------------------------------------------------------------
@@ -743,6 +792,7 @@ home     = st.Page(page_home,       title="홈",        url_path="home",     def
 status   = st.Page(page_all_status, title="회원전체현황", url_path="status")
 personal = st.Page(page_personal,   title="회원개인현황", url_path="personal")
 rules    = st.Page(page_rules,      title="회칙",       url_path="rules")
+history  = st.Page(page_history,    title="이력회원",    url_path="history")
 
-pg = st.navigation([home, status, personal, rules], position="hidden")
+pg = st.navigation([home, status, personal, rules, history], position="hidden")
 pg.run()
