@@ -808,13 +808,6 @@ def page_history():
         st.divider()
         render_member_detail(sel_name, role, join_date, df)
 
-    st.divider()
-
-    section_header("二. 전체 거래 내역", f"<b>{len(df)}</b>건")
-    df_tx = df.copy()
-    df_tx['금액'] = df_tx['금액'].apply(format_comma)
-    st.dataframe(df_tx, use_container_width=True, hide_index=True)
-
 # -----------------------------------------------------------------------------
 # 7. 네비게이션
 # -----------------------------------------------------------------------------
