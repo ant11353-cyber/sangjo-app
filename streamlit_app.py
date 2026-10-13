@@ -430,6 +430,62 @@ def page_home():
     st.markdown('<div class="footer-credit">© 2026 GS Kim. All rights reserved.</div>', unsafe_allow_html=True)
 
 
+def render_member_detail(user_name, role, join_date, df_ledger):
+    today_date, months_passed = get_dues_calc_info()
+    total_due_target = 100000 + (months_passed * 30000)
+
+    my_deposit = 0; my_condolence_amt = 0; my_wreath_amt = 0
+    if not df_ledger.empty and '금액' in df_ledger.columns:
+        df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
+        my_deposit = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == user_name)]['금액'].sum()
+        my_condolence_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '상조금') & (df_ledger['내용'] == user_name)]['금액'].sum()
+        my_wreath_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환') & (df_ledger['내용'] == user_name)]['금액'].sum()
+
+    unpaid = total_due_target - my_deposit
+    condolence_count = int(my_condolence_amt / 1000000) if my_condolence_amt > 0 else 0
+    pay_rate = min((my_deposit / total_due_target * 100) if total_due_target > 0 else 0, 100)
+
+    st.markdown(f"""
+    <div class="welcome">
+        <div>
+            <div style="font-size:0.78rem; color:#9f9684 !important;">환영합니다</div>
+            <div><span class="name">{user_name}</span><span class="role">{role}</span></div>
+            <div class="sub">가입일자 {join_date}</div>
+        </div>
+        <div class="seal">{str(user_name)[0]}</div>
+    </div>""", unsafe_allow_html=True)
+
+    k1, k2, k3, k4 = st.columns(4)
+    status_color = "green" if unpaid <= 0 else ("yellow" if pay_rate >= 60 else "red")
+    with k1: st.markdown(kpi_card("납부할 금액", format_comma(total_due_target), "", "원"), unsafe_allow_html=True)
+    with k2: st.markdown(kpi_card("납부한 금액", format_comma(my_deposit), "green" if my_deposit >= total_due_target else "yellow", "원"), unsafe_allow_html=True)
+    with k3: st.markdown(kpi_card("미납 / 선납", format_comma(abs(unpaid)), status_color, "원"), unsafe_allow_html=True)
+    with k4: st.markdown(kpi_card("조의 횟수", condolence_count, "gold", "회"), unsafe_allow_html=True)
+
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
+    col_gauge, col_info = st.columns([1, 1])
+    with col_gauge:
+        section_header("나의 납부율")
+        st.plotly_chart(make_gauge_chart(my_deposit, total_due_target, ""), use_container_width=True, config={'displayModeBar': False})
+
+    with col_info:
+        section_header("수령 내역")
+        rec1, rec2 = st.columns(2)
+        with rec1: st.markdown(kpi_card("조의금 수령", format_comma(my_condolence_amt), "gold", "원"), unsafe_allow_html=True)
+        with rec2: st.markdown(kpi_card("근조화환 수령", format_comma(my_wreath_amt), "gold", "원"), unsafe_allow_html=True)
+
+        prev_month = today_date - relativedelta(months=1)
+        status_txt = '완납' if unpaid == 0 else ('선납 ' + format_comma(abs(unpaid)) + '원' if unpaid < 0 else '미납 ' + format_comma(abs(unpaid)) + '원')
+        st.markdown(f"""
+        <div style="background:{PAPER}; border:1px solid rgba(236,227,207,0.10); padding:14px 18px; font-size:0.85rem; line-height:1.9;">
+            <div style="display:flex; justify-content:space-between;"><span style="color:#9f9684 !important;">기준월</span><span class="serif">{prev_month.strftime('%Y년 %m월')}</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#9f9684 !important;">납부율</span><span class="serif">{pay_rate:.1f}%</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#9f9684 !important;">상태</span><span class="serif">{status_txt}</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
 def page_personal():
     apply_theme_style("sub")
     render_header_nav("회원 개인 현황")
@@ -451,64 +507,14 @@ def page_personal():
 
         target_col = '아이디' if '아이디' in df_members.columns else '비밀번호'
         user_info = df_members[df_members[target_col].astype(str).str.lower() == str(user_id_input).lower()]
+        if '직책' in user_info.columns:
+            user_info = user_info[user_info['직책'].astype(str).str.strip() != '이력회원']
 
         if not user_info.empty:
             user = user_info.iloc[0]
             user_name = user['성명']
 
-            today_date, months_passed = get_dues_calc_info()
-            total_due_target = 100000 + (months_passed * 30000)
-
-            my_deposit = 0; my_condolence_amt = 0; my_wreath_amt = 0
-            if not df_ledger.empty and '금액' in df_ledger.columns:
-                df_ledger['금액'] = df_ledger['금액'].apply(safe_int)
-                my_deposit = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'] == user_name)]['금액'].sum()
-                my_condolence_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '상조금') & (df_ledger['내용'] == user_name)]['금액'].sum()
-                my_wreath_amt = df_ledger[(df_ledger['구분'] == '출금') & (df_ledger['분류'] == '근조화환') & (df_ledger['내용'] == user_name)]['금액'].sum()
-
-            unpaid = total_due_target - my_deposit
-            condolence_count = int(my_condolence_amt / 1000000) if my_condolence_amt > 0 else 0
-            pay_rate = min((my_deposit / total_due_target * 100) if total_due_target > 0 else 0, 100)
-
-            st.markdown(f"""
-            <div class="welcome">
-                <div>
-                    <div style="font-size:0.78rem; color:#9f9684 !important;">환영합니다</div>
-                    <div><span class="name">{user_name}</span><span class="role">{user['직책']}</span></div>
-                    <div class="sub">가입일자 {user['가입일자']}</div>
-                </div>
-                <div class="seal">{str(user_name)[0]}</div>
-            </div>""", unsafe_allow_html=True)
-
-            k1, k2, k3, k4 = st.columns(4)
-            status_color = "green" if unpaid <= 0 else ("yellow" if pay_rate >= 60 else "red")
-            with k1: st.markdown(kpi_card("납부할 금액", format_comma(total_due_target), "", "원"), unsafe_allow_html=True)
-            with k2: st.markdown(kpi_card("납부한 금액", format_comma(my_deposit), "green" if my_deposit >= total_due_target else "yellow", "원"), unsafe_allow_html=True)
-            with k3: st.markdown(kpi_card("미납 / 선납", format_comma(abs(unpaid)), status_color, "원"), unsafe_allow_html=True)
-            with k4: st.markdown(kpi_card("조의 횟수", condolence_count, "gold", "회"), unsafe_allow_html=True)
-
-            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-
-            col_gauge, col_info = st.columns([1, 1])
-            with col_gauge:
-                section_header("나의 납부율")
-                st.plotly_chart(make_gauge_chart(my_deposit, total_due_target, ""), use_container_width=True, config={'displayModeBar': False})
-
-            with col_info:
-                section_header("수령 내역")
-                rec1, rec2 = st.columns(2)
-                with rec1: st.markdown(kpi_card("조의금 수령", format_comma(my_condolence_amt), "gold", "원"), unsafe_allow_html=True)
-                with rec2: st.markdown(kpi_card("근조화환 수령", format_comma(my_wreath_amt), "gold", "원"), unsafe_allow_html=True)
-
-                prev_month = today_date - relativedelta(months=1)
-                status_txt = '완납' if unpaid == 0 else ('선납 ' + format_comma(abs(unpaid)) + '원' if unpaid < 0 else '미납 ' + format_comma(abs(unpaid)) + '원')
-                st.markdown(f"""
-                <div style="background:{PAPER}; border:1px solid rgba(236,227,207,0.10); padding:14px 18px; font-size:0.85rem; line-height:1.9;">
-                    <div style="display:flex; justify-content:space-between;"><span style="color:#9f9684 !important;">기준월</span><span class="serif">{prev_month.strftime('%Y년 %m월')}</span></div>
-                    <div style="display:flex; justify-content:space-between;"><span style="color:#9f9684 !important;">납부율</span><span class="serif">{pay_rate:.1f}%</span></div>
-                    <div style="display:flex; justify-content:space-between;"><span style="color:#9f9684 !important;">상태</span><span class="serif">{status_txt}</span></div>
-                </div>
-                """, unsafe_allow_html=True)
+            render_member_detail(user_name, user['직책'], user['가입일자'], df_ledger)
         else:
             with col_center:
                 st.error("일치하는 아이디가 없습니다. 다시 확인해주세요.")
@@ -521,6 +527,12 @@ def page_all_status():
     df_members = load_data("members")
     df_ledger  = load_data("ledger")
     df_assets  = load_data("assets")
+
+    hist_names = []
+    if not df_members.empty and '직책' in df_members.columns:
+        is_hist = df_members['직책'].astype(str).str.strip() == '이력회원'
+        hist_names = df_members[is_hist]['성명'].tolist()
+        df_members = df_members[~is_hist]
 
     if not df_ledger.empty:
         for col in ['구분', '분류']:
@@ -641,7 +653,11 @@ def page_all_status():
                 if mask.any(): real_balance = df_assets[mask][asset_amount_col].iloc[0]
             except: pass
 
-        val_a = total_paid_sum - exp_total
+        # 이력회원 입금도 회비통장에 들어가 있으므로 장부상 잔액에는 포함해야 실제 잔액과 맞음
+        hist_paid = 0
+        if hist_names and '금액' in df_ledger.columns:
+            hist_paid = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'].isin(hist_names))]['금액'].sum()
+        val_a = total_paid_sum + hist_paid - exp_total
         diff_final = real_balance - val_a
 
         section_header("三. 분석적 검토", f"차이 <b>{format_comma(diff_final)}원</b>")
@@ -776,7 +792,21 @@ def page_history():
     }])], ignore_index=True)
     for c in ['입금 합계', '출금 합계', '차액(입금-출금)']:
         df_disp[c] = df_disp[c].apply(format_comma)
-    st.dataframe(df_disp, use_container_width=True, hide_index=True)
+    event = st.dataframe(df_disp, use_container_width=True, hide_index=True,
+                         on_select="rerun", selection_mode="single-row")
+    st.caption("회원 행 맨 왼쪽 칸을 눌러 선택하면 아래에 개인 현황이 표시됩니다.")
+
+    rows = event.selection.rows
+    if rows and df_disp.loc[rows[0], '회원명'] != '합계':
+        sel_name = df_disp.loc[rows[0], '회원명']
+        df_members = load_data("members")
+        role, join_date = '이력회원', '-'
+        if not df_members.empty and '성명' in df_members.columns:
+            m = df_members[df_members['성명'] == sel_name]
+            if not m.empty:
+                role, join_date = m.iloc[0].get('직책', role), m.iloc[0].get('가입일자', join_date)
+        st.divider()
+        render_member_detail(sel_name, role, join_date, df)
 
     st.divider()
 
