@@ -461,7 +461,7 @@ def render_member_detail(user_name, role, join_date, df_ledger, end_date=None):
         <div>
             <div style="font-size:0.78rem; color:#9f9684 !important;">환영합니다</div>
             <div><span class="name">{user_name}</span><span class="role">{role}</span></div>
-            <div class="sub">가입일자 {join_date}</div>
+            <div class="sub">가입일자 {join_date}{' · 이력일자 ' + end_date.strftime('%Y-%m-%d') if end_date else ''}</div>
         </div>
         <div class="seal">{str(user_name)[0]}</div>
     </div>""", unsafe_allow_html=True)
