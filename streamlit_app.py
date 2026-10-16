@@ -430,8 +430,19 @@ def page_home():
     st.markdown('<div class="footer-credit">© 2026 GS Kim. All rights reserved.</div>', unsafe_allow_html=True)
 
 
-def render_member_detail(user_name, role, join_date, df_ledger):
+def parse_date(value):
+    # 시트 날짜가 "2023-05-31", "2023.05.31", "2023. 5. 31" 등 어떤 형식이어도 읽히도록
+    s = str(value).strip().rstrip('.').replace('. ', '-').replace('.', '-')
+    d = pd.to_datetime(s, errors='coerce')
+    return None if pd.isna(d) else d.to_pydatetime()
+
+def render_member_detail(user_name, role, join_date, df_ledger, end_date=None):
     today_date, months_passed = get_dues_calc_info()
+    ref_month = today_date - relativedelta(months=1)
+    # 이력회원: 이력일자가 속한 달까지만 회비 부과 (경과월수 공식은 동일)
+    if end_date is not None and end_date < today_date:
+        months_passed = max((end_date.year - 2020) * 12 + (end_date.month - 2) + 1, 0)
+        ref_month = end_date
     total_due_target = 100000 + (months_passed * 30000)
 
     my_deposit = 0; my_condolence_amt = 0; my_wreath_amt = 0
@@ -475,11 +486,10 @@ def render_member_detail(user_name, role, join_date, df_ledger):
         with rec1: st.markdown(kpi_card("조의금 수령", format_comma(my_condolence_amt), "gold", "원"), unsafe_allow_html=True)
         with rec2: st.markdown(kpi_card("근조화환 수령", format_comma(my_wreath_amt), "gold", "원"), unsafe_allow_html=True)
 
-        prev_month = today_date - relativedelta(months=1)
         status_txt = '완납' if unpaid == 0 else ('선납 ' + format_comma(abs(unpaid)) + '원' if unpaid < 0 else '미납 ' + format_comma(abs(unpaid)) + '원')
         st.markdown(f"""
         <div style="background:{PAPER}; border:1px solid rgba(236,227,207,0.10); padding:14px 18px; font-size:0.85rem; line-height:1.9;">
-            <div style="display:flex; justify-content:space-between;"><span style="color:#9f9684 !important;">기준월</span><span class="serif">{prev_month.strftime('%Y년 %m월')}</span></div>
+            <div style="display:flex; justify-content:space-between;"><span style="color:#9f9684 !important;">기준월</span><span class="serif">{ref_month.strftime('%Y년 %m월')}</span></div>
             <div style="display:flex; justify-content:space-between;"><span style="color:#9f9684 !important;">납부율</span><span class="serif">{pay_rate:.1f}%</span></div>
             <div style="display:flex; justify-content:space-between;"><span style="color:#9f9684 !important;">상태</span><span class="serif">{status_txt}</span></div>
         </div>
@@ -800,13 +810,16 @@ def page_history():
     if rows and df_disp.loc[rows[0], '회원명'] != '합계':
         sel_name = df_disp.loc[rows[0], '회원명']
         df_members = load_data("members")
-        role, join_date = '이력회원', '-'
+        role, join_date, end_date = '이력회원', '-', None
         if not df_members.empty and '성명' in df_members.columns:
             m = df_members[df_members['성명'] == sel_name]
             if not m.empty:
                 role, join_date = m.iloc[0].get('직책', role), m.iloc[0].get('가입일자', join_date)
+                end_date = parse_date(m.iloc[0].get('이력일자', ''))
         st.divider()
-        render_member_detail(sel_name, role, join_date, df)
+        if end_date is None:
+            st.warning("members 시트에 이력일자가 없어 오늘 기준으로 계산했습니다.")
+        render_member_detail(sel_name, role, join_date, df, end_date)
 
 # -----------------------------------------------------------------------------
 # 7. 네비게이션
