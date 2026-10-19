@@ -437,15 +437,15 @@ def parse_date(value):
     return None if pd.isna(d) else d.to_pydatetime()
 
 def is_hist_member(df_members):
-    # members 시트에 이력일자가 적힌 회원 = 이력회원
-    if '이력일자' not in df_members.columns:
+    # members 시트에 탈회일자가 적힌 회원 = 이력회원
+    if '탈회일자' not in df_members.columns:
         return pd.Series(False, index=df_members.index)
-    return df_members['이력일자'].apply(parse_date).notna()
+    return df_members['탈회일자'].apply(parse_date).notna()
 
 def render_member_detail(user_name, role, join_date, df_ledger, end_date=None):
     today_date, months_passed = get_dues_calc_info()
     ref_month = today_date - relativedelta(months=1)
-    # 이력회원: 이력일자가 속한 달까지만 회비 부과 (경과월수 공식은 동일)
+    # 이력회원: 탈회일자가 속한 달까지만 회비 부과 (경과월수 공식은 동일)
     if end_date is not None and end_date < today_date:
         months_passed = max((end_date.year - 2020) * 12 + (end_date.month - 2) + 1, 0)
         ref_month = end_date
@@ -824,10 +824,10 @@ def page_history():
             m = df_members[df_members['성명'] == sel_name]
             if not m.empty:
                 role, join_date = m.iloc[0].get('직책', role), m.iloc[0].get('가입일자', join_date)
-                end_date = parse_date(m.iloc[0].get('이력일자', ''))
+                end_date = parse_date(m.iloc[0].get('탈회일자', ''))
         st.divider()
         if end_date is None:
-            st.warning("members 시트에 이력일자가 없어 오늘 기준으로 계산했습니다.")
+            st.warning("members 시트에 탈회일자가 없어 오늘 기준으로 계산했습니다.")
         render_member_detail(sel_name, role, join_date, df, end_date)
 
 # -----------------------------------------------------------------------------
