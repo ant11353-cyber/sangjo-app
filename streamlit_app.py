@@ -424,7 +424,7 @@ def page_home():
             st.switch_page(personal)
         if st.button("三 · 회칙 확인", key="btn_rules"):
             st.switch_page(rules)
-        if st.button("四 · 이력회원", key="btn_history"):
+        if st.button("四 · 탈회등 회원", key="btn_history"):
             st.switch_page(history)
 
     st.markdown('<div class="footer-credit">© 2026 GS Kim. All rights reserved.</div>', unsafe_allow_html=True)
@@ -467,7 +467,7 @@ def render_member_detail(user_name, role, join_date, df_ledger, end_date=None):
         <div>
             <div style="font-size:0.78rem; color:#9f9684 !important;">환영합니다</div>
             <div><span class="name">{user_name}</span><span class="role">{role}</span></div>
-            <div class="sub">가입일자 {join_date}{' · 이력일자 ' + end_date.strftime('%Y-%m-%d') if end_date else ''}</div>
+            <div class="sub">가입일자 {join_date}{' · 탈회일자 ' + end_date.strftime('%Y-%m-%d') if end_date else ''}</div>
         </div>
         <div class="seal">{str(user_name)[0]}</div>
     </div>""", unsafe_allow_html=True)
@@ -682,7 +682,7 @@ def page_all_status():
         with r2: st.markdown(kpi_card("장부상 잔액", format_comma(val_a), "", "원"), unsafe_allow_html=True)
         with r3: st.markdown(kpi_card("차이", format_comma(diff_final), "gold", "원"), unsafe_allow_html=True)
         d1, d2 = st.columns(2)
-        with d1: st.markdown(kpi_card("└ 이력회원 수입", format_comma(hist_net), "", "원"), unsafe_allow_html=True)
+        with d1: st.markdown(kpi_card("└ 탈회등 회원 수입", format_comma(hist_net), "", "원"), unsafe_allow_html=True)
         with d2: st.markdown(kpi_card("└ 기타 (이자 등)", format_comma(diff_other), "", "원"), unsafe_allow_html=True)
         conclusion("차이금액은 회비통장 이자수익 미반영분으로, 중요성 관점에서 회계상 문제 없음.")
 
@@ -776,11 +776,11 @@ def page_rules():
 
 def page_history():
     apply_theme_style("sub")
-    render_header_nav("이력회원", seal_text="履歷")
+    render_header_nav("탈회등 회원", seal_text="脫會")
 
     df = load_data("history")
     if df.empty or '금액' not in df.columns:
-        st.warning("이력회원 데이터를 불러오지 못했습니다.")
+        st.warning("탈회등 회원 데이터를 불러오지 못했습니다.")
         return
 
     for col in ['구분', '내용', '분류']:
@@ -798,7 +798,7 @@ def page_history():
     total_out = df_sum['출금 합계'].sum()
 
     k1, k2, k3, k4 = st.columns(4)
-    with k1: st.markdown(kpi_card("이력회원", len(df_sum), "", "명"), unsafe_allow_html=True)
+    with k1: st.markdown(kpi_card("탈회등 회원", len(df_sum), "", "명"), unsafe_allow_html=True)
     with k2: st.markdown(kpi_card("입금 합계", format_comma(total_in), "green", "원"), unsafe_allow_html=True)
     with k3: st.markdown(kpi_card("출금 합계", format_comma(total_out), "red", "원"), unsafe_allow_html=True)
     with k4: st.markdown(kpi_card("차액", format_comma(total_in - total_out), "gold", "원"), unsafe_allow_html=True)
@@ -819,7 +819,7 @@ def page_history():
     if rows and df_disp.loc[rows[0], '회원명'] != '합계':
         sel_name = df_disp.loc[rows[0], '회원명']
         df_members = load_data("members")
-        role, join_date, end_date = '이력회원', '-', None
+        role, join_date, end_date = '탈회등 회원', '-', None
         if not df_members.empty and '성명' in df_members.columns:
             m = df_members[df_members['성명'] == sel_name]
             if not m.empty:
@@ -837,7 +837,7 @@ home     = st.Page(page_home,       title="홈",        url_path="home",     def
 status   = st.Page(page_all_status, title="회원전체현황", url_path="status")
 personal = st.Page(page_personal,   title="회원개인현황", url_path="personal")
 rules    = st.Page(page_rules,      title="회칙",       url_path="rules")
-history  = st.Page(page_history,    title="이력회원",    url_path="history")
+history  = st.Page(page_history,    title="탈회등 회원", url_path="history")
 
 pg = st.navigation([home, status, personal, rules, history], position="hidden")
 pg.run()
