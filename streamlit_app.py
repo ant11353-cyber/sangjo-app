@@ -436,6 +436,12 @@ def parse_date(value):
     d = pd.to_datetime(s, errors='coerce')
     return None if pd.isna(d) else d.to_pydatetime()
 
+def is_hist_member(df_members):
+    # members 시트에 이력일자가 적힌 회원 = 이력회원
+    if '이력일자' not in df_members.columns:
+        return pd.Series(False, index=df_members.index)
+    return df_members['이력일자'].apply(parse_date).notna()
+
 def render_member_detail(user_name, role, join_date, df_ledger, end_date=None):
     today_date, months_passed = get_dues_calc_info()
     ref_month = today_date - relativedelta(months=1)
@@ -517,8 +523,7 @@ def page_personal():
 
         target_col = '아이디' if '아이디' in df_members.columns else '비밀번호'
         user_info = df_members[df_members[target_col].astype(str).str.lower() == str(user_id_input).lower()]
-        if '직책' in user_info.columns:
-            user_info = user_info[user_info['직책'].astype(str).str.strip() != '이력회원']
+        user_info = user_info[~is_hist_member(user_info)]
 
         if not user_info.empty:
             user = user_info.iloc[0]
@@ -538,11 +543,8 @@ def page_all_status():
     df_ledger  = load_data("ledger")
     df_assets  = load_data("assets")
 
-    hist_names = []
-    if not df_members.empty and '직책' in df_members.columns:
-        is_hist = df_members['직책'].astype(str).str.strip() == '이력회원'
-        hist_names = df_members[is_hist]['성명'].tolist()
-        df_members = df_members[~is_hist]
+    if not df_members.empty:
+        df_members = df_members[~is_hist_member(df_members)]
 
     if not df_ledger.empty:
         for col in ['구분', '분류']:
@@ -663,18 +665,25 @@ def page_all_status():
                 if mask.any(): real_balance = df_assets[mask][asset_amount_col].iloc[0]
             except: pass
 
-        # 이력회원 입금도 회비통장에 들어가 있으므로 장부상 잔액에는 포함해야 실제 잔액과 맞음
-        hist_paid = 0
-        if hist_names and '금액' in df_ledger.columns:
-            hist_paid = df_ledger[(df_ledger['구분'] == '입금') & (df_ledger['내용'].isin(hist_names))]['금액'].sum()
-        val_a = total_paid_sum + hist_paid - exp_total
+        # 이력회원 입출금은 history 탭에 따로 적으므로, 장부상 잔액에 넣지 않고 차이 내역에서 따로 보여줌
+        hist_net = 0
+        df_hist = load_data("history")
+        if not df_hist.empty and '금액' in df_hist.columns and '구분' in df_hist.columns:
+            hist_gubun = df_hist['구분'].astype(str).str.strip()
+            hist_amt = df_hist['금액'].apply(safe_int)
+            hist_net = hist_amt[hist_gubun == '입금'].sum() - hist_amt[hist_gubun == '출금'].sum()
+        val_a = total_paid_sum - exp_total
         diff_final = real_balance - val_a
+        diff_other = diff_final - hist_net
 
         section_header("三. 분석적 검토", f"차이 <b>{format_comma(diff_final)}원</b>")
         r1, r2, r3 = st.columns(3)
         with r1: st.markdown(kpi_card("실제 통장 잔액", format_comma(real_balance), "", "원"), unsafe_allow_html=True)
         with r2: st.markdown(kpi_card("장부상 잔액", format_comma(val_a), "", "원"), unsafe_allow_html=True)
-        with r3: st.markdown(kpi_card("차이 (이자 등)", format_comma(diff_final), "gold", "원"), unsafe_allow_html=True)
+        with r3: st.markdown(kpi_card("차이", format_comma(diff_final), "gold", "원"), unsafe_allow_html=True)
+        d1, d2 = st.columns(2)
+        with d1: st.markdown(kpi_card("└ 이력회원 수입", format_comma(hist_net), "", "원"), unsafe_allow_html=True)
+        with d2: st.markdown(kpi_card("└ 기타 (이자 등)", format_comma(diff_other), "", "원"), unsafe_allow_html=True)
         conclusion("차이금액은 회비통장 이자수익 미반영분으로, 중요성 관점에서 회계상 문제 없음.")
 
     # ──────────────── TAB 2 ────────────────
