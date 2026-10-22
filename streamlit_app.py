@@ -656,6 +656,13 @@ def page_all_status():
                     lv, vv = zip(*valid)
                     st.plotly_chart(make_expense_pie_chart(list(lv), list(vv)), use_container_width=True, config={'displayModeBar': False})
 
+        df_meet = load_data("meetings")
+        if not df_meet.empty:
+            section_header("※ 최근 모임 내역")
+            if '금액' in df_meet.columns:
+                df_meet['금액'] = df_meet['금액'].apply(lambda v: format_comma(safe_int(v)) if str(v).strip() not in ('', 'nan') else '')
+            st.dataframe(df_meet.fillna(''), use_container_width=True, hide_index=True)
+
         st.divider()
 
         real_balance = 0
