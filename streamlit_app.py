@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import base64
+from html import escape
 
 # -----------------------------------------------------------------------------
 # 1. 페이지 설정
@@ -200,19 +201,21 @@ h1, h2, h3, h4, .serif {{ font-family: 'Noto Serif KR', serif !important; }}
     padding: 20px 22px 16px 22px;
     animation: fadeSlideUp 0.5s ease forwards;
     margin-bottom: 12px;
+    container-type: inline-size;
 }}
 .kpi-card.red   {{ border-top-color: rgba(166,58,43,0.8); }}
 .kpi-card.green {{ border-top-color: rgba(143,179,163,0.7); }}
 .kpi-label {{ font-size: 0.72rem; letter-spacing: 3px; color: {MUTED} !important; margin-bottom: 10px; }}
 .kpi-value {{
     font-family: 'Noto Serif KR', serif !important;
-    font-size: 1.9rem; font-weight: 700; line-height: 1; color: {HANJI} !important;
+    font-size: clamp(0.95rem, 10cqi, 1.9rem); font-weight: 700; line-height: 1; color: {HANJI} !important;
+    white-space: nowrap;
 }}
 .kpi-value.green  {{ color: {CELADON} !important; }}
 .kpi-value.red    {{ color: {SEAL_LT} !important; }}
 .kpi-value.yellow {{ color: {GOLD} !important; }}
 .kpi-value.gold   {{ color: {GOLD} !important; }}
-.kpi-unit {{ font-size: 0.85rem; color: {MUTED} !important; margin-left: 3px; }}
+.kpi-unit {{ font-size: 0.45em; color: {MUTED} !important; margin-left: 3px; }}
 
 /* ── 버튼 ── */
 .stButton > button {{
@@ -260,7 +263,7 @@ h1, h2, h3, h4, .serif {{ font-family: 'Noto Serif KR', serif !important; }}
     border: 1px solid rgba(143,179,163,0.35);
 }}
 .interest-box .lbl {{ font-size: 0.72rem; letter-spacing: 3px; color: {MUTED} !important; margin-bottom: 8px; }}
-.interest-box .val {{ font-family: 'Noto Serif KR', serif !important; font-size: 2rem; font-weight: 700; color: {CELADON} !important; }}
+.interest-box .val {{ font-family: 'Noto Serif KR', serif !important; font-size: clamp(1.2rem, 8vw, 2rem); white-space: nowrap; font-weight: 700; color: {CELADON} !important; }}
 
 /* ── 로그인 안내 ── */
 .login-guide-box {{
@@ -315,6 +318,48 @@ h1, h2, h3, h4, .serif {{ font-family: 'Noto Serif KR', serif !important; }}
 
 hr {{ border-color: rgba(236,227,207,0.10) !important; }}
 
+/* ── 정돈 표 (A안) ── */
+.ga-tbl-wrap {{ overflow-x: auto; margin-bottom: 8px; }}
+.ga-tbl {{ width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.88rem; }}
+.ga-tbl th {{
+    font-weight: 400; font-size: 0.72rem; letter-spacing: 1px; color: {MUTED} !important; text-align: left;
+    padding: 9px 8px; background: rgba(216,184,106,0.07); border-bottom: 1px solid rgba(216,184,106,0.35); white-space: nowrap;
+}}
+.ga-tbl td {{ padding: 10px 8px; border-bottom: 1px solid rgba(236,227,207,0.06); white-space: nowrap; }}
+.ga-tbl th, .ga-tbl td {{ border-left: none !important; border-right: none !important; }}
+.ga-tbl .n {{ text-align: right; }}
+.ga-tbl tr.total td {{ border-top: 1px solid rgba(216,184,106,0.55); border-bottom: 0; font-family: 'Noto Serif KR', serif !important; font-weight: 700; }}
+.ga-tbl td.hl {{ outline: 1px solid {GOLD}; outline-offset: -3px; color: {GOLD} !important; }}
+.dim {{ color: {MUTED} !important; }}
+.badge {{ display: inline-block; padding: 1px 8px; font-size: 0.72rem; font-weight: 500; border: 1px solid transparent; }}
+.badge.ok  {{ color: {CELADON} !important; background: rgba(143,179,163,0.12); border-color: rgba(143,179,163,0.35); }}
+.badge.pre {{ color: {GOLD} !important; background: rgba(216,184,106,0.10); border-color: rgba(216,184,106,0.35); }}
+.badge.due {{ color: {SEAL_LT} !important; background: rgba(166,58,43,0.16); border-color: rgba(166,58,43,0.5); }}
+
+/* ── 납부율 요약 (A안) ── */
+.ga-hero {{
+    display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center;
+    background: {PAPER}; border-top: 2px solid {GOLD}; padding: 18px 20px; margin: 8px 0 16px 0;
+}}
+.ga-donut {{ position: relative; width: 128px; height: 128px; }}
+.ga-donut svg {{ width: 128px; height: 128px; transform: rotate(-90deg); }}
+.ga-donut .c {{ position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }}
+.ga-donut b {{ font-family: 'Noto Serif KR', serif !important; font-size: 1.7rem; line-height: 1; }}
+.ga-donut small {{ font-size: 0.68rem; color: {MUTED} !important; margin-top: 4px; letter-spacing: 1px; }}
+.ga-stats {{ display: flex; flex-direction: column; gap: 8px; min-width: 0; container-type: inline-size; }}
+.ga-stat {{ display: flex; justify-content: space-between; gap: 8px; font-size: clamp(0.7rem, 6.5cqi, 0.88rem); white-space: nowrap; color: {MUTED} !important; border-bottom: 1px solid rgba(236,227,207,0.06); padding-bottom: 7px; }}
+.ga-stat:last-child {{ border-bottom: 0; padding-bottom: 0; }}
+.ga-stat b {{ font-family: 'Noto Serif KR', serif !important; font-weight: 700; color: {HANJI} !important; }}
+.ga-stat b.warn {{ color: {SEAL_LT} !important; }}
+
+/* ── 분석적 검토 목록 (A안) ── */
+.ga-review {{ background: {PAPER}; padding: 16px 18px; display: flex; flex-direction: column; gap: 9px; container-type: inline-size; }}
+.ga-row {{ display: flex; justify-content: space-between; gap: 8px; font-size: clamp(0.72rem, 4.4cqi, 0.9rem); white-space: nowrap; color: {MUTED} !important; }}
+.ga-row b {{ font-family: 'Noto Serif KR', serif !important; font-variant-numeric: tabular-nums; color: {HANJI} !important; }}
+.ga-row.sum {{ border-top: 1px solid rgba(216,184,106,0.4); padding-top: 9px; color: {HANJI} !important; }}
+.ga-row.sum b {{ color: {GOLD} !important; font-size: 1.22em; }}
+.ga-row.sub {{ padding-left: 14px; font-size: clamp(0.68rem, 4.1cqi, 0.84rem); }}
+
 /* ── 회칙 ── */
 .rule-card {{
     background: {PAPER}; border: 1px solid rgba(236,227,207,0.10);
@@ -334,7 +379,7 @@ hr {{ border-color: rgba(236,227,207,0.10) !important; }}
 @media only screen and (max-width: 600px) {{
     .stButton > button {{ height: 3.2rem !important; font-size: 0.95rem !important; }}
     .block-container {{ padding-left: 1rem !important; padding-right: 1rem !important; }}
-    .kpi-value {{ font-size: 1.4rem !important; }}
+    .kpi-value {{ font-size: clamp(0.9rem, 10cqi, 1.4rem) !important; }}
     .page-title {{ font-size: 1.35rem; }}
 }}
 
@@ -385,6 +430,40 @@ def kpi_card(label, value, color_class="", unit=""):
         <div class="kpi-label">{label}</div>
         <div class="kpi-value {color_class}">{value}{unit_html}</div>
     </div>"""
+
+def html_table(headers, rows, num_cols=(), total=None, hl_col=None):
+    # st.dataframe 대신 먹과 한지 톤 표. 값은 호출하는 쪽에서 포맷·escape 해서 넘김
+    def td(i, v, tag='td', extra=''):
+        c = (('n ' if i in num_cols else '') + extra).strip()
+        return f'<{tag} class="{c}">{v}</{tag}>' if c else f'<{tag}>{v}</{tag}>'
+    head = ''.join(td(i, h, 'th') for i, h in enumerate(headers))
+    body = ''.join('<tr>' + ''.join(td(i, v) for i, v in enumerate(r)) + '</tr>' for r in rows)
+    if total:
+        body += '<tr class="total">' + ''.join(td(i, v, extra='hl' if i == hl_col else '') for i, v in enumerate(total)) + '</tr>'
+    return f'<div class="ga-tbl-wrap"><table class="ga-tbl"><tr>{head}</tr>{body}</table></div>'
+
+def signed_diff(d):
+    # 납부액 - 기준금액: 부족분만 강조하고 0·초과분은 흐리게
+    if d < 0: return f'−{format_comma(-d)}'
+    return f'<span class="dim">{"+" + format_comma(d) if d > 0 else "0"}</span>'
+
+def status_badge(s):
+    return f'<span class="badge {dict(완납="ok", 선납="pre", 미납="due").get(s, "")}">{s}</span>'
+
+def rate_hero(rate, total_members, complete_count, unpaid_count, unpaid_sum):
+    circ = 2 * 3.14159265 * 56
+    dash = circ * min(max(rate, 0), 100) / 100
+    warn = ' class="warn"' if unpaid_count > 0 else ''
+    return (f'<div class="ga-hero"><div class="ga-donut">'
+            f'<svg viewBox="0 0 128 128"><circle cx="64" cy="64" r="56" fill="none" stroke="rgba(236,227,207,0.08)" stroke-width="11"/>'
+            f'<circle cx="64" cy="64" r="56" fill="none" stroke="{CELADON}" stroke-width="11" stroke-dasharray="{dash:.2f} {circ:.2f}"/></svg>'
+            f'<div class="c"><b>{rate:.1f}%</b><small>전체 납부율</small></div></div>'
+            f'<div class="ga-stats">'
+            f'<div class="ga-stat">전체 회원 <b>{total_members}명</b></div>'
+            f'<div class="ga-stat">완납·선납 <b>{complete_count}명</b></div>'
+            f'<div class="ga-stat">미납 <b{warn}>{unpaid_count}명</b></div>'
+            f'<div class="ga-stat">미납 잔액 <b{warn}>{format_comma(unpaid_sum)}원</b></div>'
+            f'</div></div>')
 
 def section_header(title, badge=""):
     badge_html = f'<span class="section-badge">{badge}</span>' if badge else ""
@@ -586,47 +665,28 @@ def page_all_status():
             total_paid_sum = df_analysis['B.납부한금액'].sum()
 
         if not df_analysis.empty:
-            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-            k1, k2, k3, k4 = st.columns(4)
             total_members  = len(df_analysis)
             complete_count = (df_analysis['상태'].isin(['완납', '선납'])).sum()
             unpaid_count   = (df_analysis['상태'] == '미납').sum()
             overall_rate   = (total_paid_sum / (total_due_per_person * total_members) * 100) if total_members > 0 else 0
+            unpaid_sum     = df_analysis['차이금액(=A-B)'].clip(lower=0).sum()
 
-            with k1: st.markdown(kpi_card("전체 회원", total_members, "", "명"), unsafe_allow_html=True)
-            with k2: st.markdown(kpi_card("완납 회원", complete_count, "green", "명"), unsafe_allow_html=True)
-            with k3: st.markdown(kpi_card("미납 회원", unpaid_count, "red" if unpaid_count > 0 else "green", "명"), unsafe_allow_html=True)
-            with k4: st.markdown(kpi_card("전체 납부율", f"{overall_rate:.1f}", "gold", "%"), unsafe_allow_html=True)
+            st.markdown(rate_hero(overall_rate, total_members, complete_count, unpaid_count, unpaid_sum), unsafe_allow_html=True)
 
-            st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-
-            col_bar, col_pie = st.columns([3, 2])
-            with col_bar:
-                section_header("회원별 납부율", f"납부 합계 <b>{format_comma(total_paid_sum)}원</b>")
-                st.plotly_chart(make_payment_bar_chart(df_analysis), use_container_width=True, config={'displayModeBar': False})
-            with col_pie:
-                section_header("납부 현황 구성")
-                paid_total_sum   = df_analysis['B.납부한금액'].sum()
-                unpaid_total_sum = df_analysis['차이금액(=A-B)'].clip(lower=0).sum()
-                if paid_total_sum + unpaid_total_sum > 0:
-                    st.plotly_chart(make_donut_chart(['납부완료', '미납잔액'], [paid_total_sum, unpaid_total_sum], ""),
-                                    use_container_width=True, config={'displayModeBar': False})
+            section_header("회원별 납부율", f"납부 합계 <b>{format_comma(total_paid_sum)}원</b>")
+            st.plotly_chart(make_payment_bar_chart(df_analysis), use_container_width=True, config={'displayModeBar': False})
 
         st.divider()
 
-        section_header("一. 전체 입금 내역")
+        section_header("一. 회원별 납부 현황", f"기준 <b>{format_comma(total_due_per_person)}원</b>/인")
         if not df_analysis.empty:
-            total_row = pd.DataFrame([{
-                "회원명": "합계",
-                "A.납부할금액": df_analysis['A.납부할금액'].sum(),
-                "B.납부한금액": total_paid_sum,
-                "차이금액(=A-B)": df_analysis['차이금액(=A-B)'].sum(),
-                "상태": "-"
-            }])
-            df_disp = pd.concat([df_analysis, total_row], ignore_index=True)
-            for col in ["A.납부할금액", "B.납부한금액", "차이금액(=A-B)"]:
-                df_disp[col] = df_disp[col].apply(format_comma)
-            st.dataframe(df_disp, use_container_width=True, hide_index=True)
+            member_rows = [[escape(str(r['회원명'])), format_comma(r['B.납부한금액']),
+                            signed_diff(r['B.납부한금액'] - r['A.납부할금액']), status_badge(r['상태'])]
+                           for _, r in df_analysis.iterrows()]
+            total_diff = total_paid_sum - df_analysis['A.납부할금액'].sum()
+            st.markdown(html_table(['회원', '납부액', '차이', '상태'], member_rows, num_cols=(1, 2),
+                                   total=['합계', format_comma(total_paid_sum), signed_diff(total_diff), ''], hl_col=1),
+                        unsafe_allow_html=True)
 
         st.divider()
 
@@ -641,12 +701,12 @@ def page_all_status():
             col_exp_table, col_exp_chart = st.columns([3, 2])
             with col_exp_table:
                 section_header("二. 회비통장 지출액", f"합계 <b>{format_comma(exp_total)}원</b>")
-                df_exp = pd.DataFrame({
-                    "지출 항목": ["조의금", "근조화환", "회의비 등", "적금", "합계"],
-                    "내용": ["건당 100만원", "건당 10만원", "식대 · 소모품", "적금 원금", ""],
-                    "금액": [format_comma(x) for x in [exp_c, exp_w, exp_m, exp_s, exp_total]],
-                })
-                st.dataframe(df_exp, use_container_width=True, hide_index=True)
+                exp_rows = [["조의금", "건당 100만원", format_comma(exp_c)],
+                            ["근조화환", "건당 10만원", format_comma(exp_w)],
+                            ["회의비 등", "식대 · 소모품", format_comma(exp_m)],
+                            ["적금", "적금 원금", format_comma(exp_s)]]
+                st.markdown(html_table(['지출 항목', '내용', '금액'], exp_rows, num_cols=(2,),
+                                       total=['합계', '', format_comma(exp_total)], hl_col=2), unsafe_allow_html=True)
             with col_exp_chart:
                 section_header("지출 구성")
                 labels = ['조의금', '근조화환', '회의비 등', '적금']
@@ -661,7 +721,11 @@ def page_all_status():
             section_header("※ 최근 모임 내역")
             if '금액' in df_meet.columns:
                 df_meet['금액'] = df_meet['금액'].apply(lambda v: format_comma(safe_int(v)) if str(v).strip() not in ('', 'nan') else '')
-            st.dataframe(df_meet.fillna(''), use_container_width=True, hide_index=True)
+            df_meet = df_meet.fillna('')
+            meet_cols = list(df_meet.columns)
+            meet_rows = [[escape(str(v)) for v in r] for r in df_meet.values.tolist()]
+            st.markdown(html_table([escape(str(c)) for c in meet_cols], meet_rows,
+                                   num_cols=tuple(i for i, c in enumerate(meet_cols) if c == '금액')), unsafe_allow_html=True)
 
         st.divider()
 
@@ -684,13 +748,14 @@ def page_all_status():
         diff_other = diff_final - hist_net
 
         section_header("三. 분석적 검토", f"차이 <b>{format_comma(diff_final)}원</b>")
-        r1, r2, r3 = st.columns(3)
-        with r1: st.markdown(kpi_card("실제 통장 잔액", format_comma(real_balance), "", "원"), unsafe_allow_html=True)
-        with r2: st.markdown(kpi_card("장부상 잔액", format_comma(val_a), "", "원"), unsafe_allow_html=True)
-        with r3: st.markdown(kpi_card("차이", format_comma(diff_final), "gold", "원"), unsafe_allow_html=True)
-        d1, d2 = st.columns(2)
-        with d1: st.markdown(kpi_card("└ 탈회등 회원 수입", format_comma(hist_net), "", "원"), unsafe_allow_html=True)
-        with d2: st.markdown(kpi_card("└ 기타 (이자 등)", format_comma(diff_other), "", "원"), unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="ga-review">'
+            f'<div class="ga-row">실제 통장 잔액 <b>{format_comma(real_balance)}원</b></div>'
+            f'<div class="ga-row">장부상 잔액 <b>{format_comma(val_a)}원</b></div>'
+            f'<div class="ga-row sum">차이 <b>{format_comma(diff_final)}원</b></div>'
+            f'<div class="ga-row sub">└ 탈회등 회원 수입 <b>{format_comma(hist_net)}원</b></div>'
+            f'<div class="ga-row sub">└ 기타 (이자 등) <b>{format_comma(diff_other)}원</b></div>'
+            f'</div>', unsafe_allow_html=True)
         conclusion("차이금액은 회비통장 이자수익 미반영분으로, 중요성 관점에서 회계상 문제 없음.")
 
     # ──────────────── TAB 2 ────────────────
