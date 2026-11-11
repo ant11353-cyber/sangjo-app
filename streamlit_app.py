@@ -966,7 +966,7 @@ pg = st.navigation([home, status, personal, rules, history], position="hidden")
 
 BGM_URL = "https://cdn.jsdelivr.net/gh/ant11353-cyber/sangjo-app@main/bgm.mp3"
 
-def bgm_player(volume=1.0):
+def bgm_player(volume=0.5):
     # Streamlit은 페이지를 옮길 때마다 화면을 새로 그림 → 오디오를 앱 바깥(브라우저 화면)에 한 번만 붙여야 끊기지 않음
     # 휴대폰은 자동재생을 막으므로 첫 터치 때 재생 시작
     components.html(f"""
@@ -977,10 +977,10 @@ if (!doc.getElementById('bgm')) {{
   a.id = 'bgm'; a.src = '{BGM_URL}'; a.loop = true; a.volume = {volume};
   doc.body.appendChild(a);
   const btn = doc.createElement('div');
-  btn.textContent = '♪';
-  btn.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:1000001;width:34px;height:34px;background:#a63a2b;color:#f3ead8;display:flex;align-items:center;justify-content:center;font-family:"Noto Serif KR",serif;font-size:14px;cursor:pointer;opacity:.85;';
+  btn.textContent = '♪ 켜기';
+  btn.style.cssText = 'position:fixed;top:60px;right:16px;z-index:1000001;padding:6px 12px;background:#a63a2b;color:#f3ead8;font-family:"Noto Serif KR",serif;font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;opacity:.9;user-select:none;';
   doc.body.appendChild(btn);
-  const setLabel = () => {{ btn.textContent = a.paused ? '消' : '♪'; btn.style.opacity = a.paused ? '.45' : '.85'; }};
+  const setLabel = () => {{ btn.textContent = a.paused ? '♪ 켜기' : '♪ 끄기'; btn.style.opacity = a.paused ? '.6' : '.9'; }};
   a.addEventListener('play', setLabel); a.addEventListener('pause', setLabel);
   a.play().catch(() => {{}});
   let started = false;
