@@ -385,9 +385,9 @@ hr {{ border-color: rgba(236,227,207,0.10) !important; }}
 }}
 
 .footer-credit {{
-    position: fixed; bottom: 10px; right: 12px;
+    position: fixed; top: 14px; left: 14px;
     color: rgba(236,227,207,0.45) !important; font-size: 0.72rem; letter-spacing: 1px;
-    padding: 4px 10px; background: rgba(20,19,15,0.6); z-index: 9999;
+    padding: 4px 10px; background: rgba(20,19,15,0.6); z-index: 1000000;
 }}
 </style>
 """
@@ -396,16 +396,65 @@ def apply_theme_style(page_type="sub"):
     st.markdown(COMMON_CSS, unsafe_allow_html=True)
     if page_type == 'home':
         bin_str = get_base64_of_bin_file('bg.jpg') or get_base64_of_bin_file('bg.png')
+        # 영상 파일 없이 CSS만으로 움직임 (용량·데이터 사용량 증가 없음)
         st.markdown(f"""
         <style>
-        .stApp {{
-            background-image:
-                linear-gradient(90deg, rgba(20,19,15,0.88) 0%, rgba(20,19,15,0.55) 45%, rgba(20,19,15,0.25) 100%),
-                url("data:image/jpeg;base64,{bin_str}");
-            background-size: cover; background-position: center; background-attachment: fixed;
+        .stApp {{ background: {INK} !important; isolation: isolate; }}
+        .stApp::before {{
+            content: ""; position: fixed; inset: -4%; z-index: -3; pointer-events: none;
+            background: url("data:image/jpeg;base64,{bin_str}") 46% 40% / cover no-repeat;
+            animation: homeReveal 2.8s ease-out both, homeDrift 38s ease-in-out 2.8s infinite alternate;
+        }}
+        .stApp::after {{
+            content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+            background: linear-gradient(90deg, rgba(20,19,15,0.88) 0%, rgba(20,19,15,0.55) 45%, rgba(20,19,15,0.25) 100%);
+        }}
+        .home-mist {{
+            position: fixed; inset: -20% -40%; z-index: -1; pointer-events: none; opacity: 0.55; mix-blend-mode: screen;
+            background:
+                radial-gradient(40% 18% at 20% 30%, rgba(236,227,207,0.10), transparent 70%),
+                radial-gradient(35% 14% at 70% 20%, rgba(236,227,207,0.08), transparent 70%),
+                radial-gradient(45% 20% at 50% 75%, rgba(236,227,207,0.06), transparent 70%);
+            animation: homeMist 46s linear infinite;
+        }}
+        .home-flash {{
+            position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
+            background:
+                radial-gradient(60% 50% at 75% 15%, rgba(236,227,207,0.55), transparent 70%),
+                radial-gradient(90% 70% at 70% 20%, rgba(200,210,230,0.18), transparent 75%);
+            animation: homeFlash 9s 3s infinite;
         }}
         .block-container {{ padding-top: 0rem; }}
-        </style>""", unsafe_allow_html=True)
+        .home-brand .eyebrow {{ display: flex; align-items: center; gap: 10px; animation: homeUp 0.8s ease-out 1.1s both; }}
+        .home-seal {{
+            width: 30px; height: 30px; background: {SEAL}; color: #f3ead8 !important; display: flex; align-items: center; justify-content: center;
+            font-family: 'Noto Serif KR', serif !important; font-size: 10px; font-weight: 700; letter-spacing: 0;
+            animation: homeStamp 0.5s cubic-bezier(.2,1.6,.4,1) 2.4s both;
+        }}
+        .home-brand .title span {{ display: inline-block; animation: homeInk 1s ease-out both; }}
+        .home-brand .rule {{ transform-origin: left; animation: homeLine 0.9s ease-out 2s both; }}
+        .home-brand .sub {{ animation: homeUp 0.8s ease-out 2.2s both; }}
+        .st-key-btn_status, .st-key-btn_personal, .st-key-btn_rules, .st-key-btn_history {{ animation: homeUp 0.7s ease-out both; }}
+        .st-key-btn_status {{ animation-delay: 2.5s; }}
+        .st-key-btn_personal {{ animation-delay: 2.62s; }}
+        .st-key-btn_rules {{ animation-delay: 2.74s; }}
+        .st-key-btn_history {{ animation-delay: 2.86s; }}
+        @keyframes homeReveal {{ from {{ filter: blur(14px) grayscale(1) brightness(.25); transform: scale(1.10); }} to {{ filter: none; transform: scale(1.04); }} }}
+        @keyframes homeDrift {{ from {{ transform: scale(1.04) translate(0,0); }} to {{ transform: scale(1.12) translate(-2.5%,-1.5%); }} }}
+        @keyframes homeMist {{ from {{ transform: translateX(0); }} to {{ transform: translateX(-25%); }} }}
+        @keyframes homeFlash {{ 0%,100% {{ opacity: 0; }} 1% {{ opacity: 1; }} 2% {{ opacity: .25; }} 3.5% {{ opacity: .95; }} 5% {{ opacity: .4; }} 7% {{ opacity: 0; }} }}
+        @keyframes homeInk {{ from {{ opacity: 0; filter: blur(8px); transform: translateY(6px); }} to {{ opacity: 1; filter: none; transform: none; }} }}
+        @keyframes homeLine {{ from {{ transform: scaleX(0); }} to {{ transform: scaleX(1); }} }}
+        @keyframes homeUp {{ from {{ opacity: 0; transform: translateY(12px); }} to {{ opacity: 1; transform: none; }} }}
+        @keyframes homeStamp {{ from {{ opacity: 0; transform: scale(1.8) rotate(-8deg); }} to {{ opacity: 1; transform: rotate(-4deg); }} }}
+        @media only screen and (max-width: 640px) {{
+            .stApp::after {{ background: linear-gradient(180deg, rgba(20,19,15,0.35) 0%, rgba(20,19,15,0.75) 55%, rgba(20,19,15,0.92) 100%); }}
+        }}
+        @media (prefers-reduced-motion: reduce) {{
+            .stApp::before, .home-mist, .home-flash, .home-brand *, .st-key-btn_status, .st-key-btn_personal, .st-key-btn_rules, .st-key-btn_history {{ animation: none !important; }}
+        }}
+        </style>
+        <div class="home-mist"></div><div class="home-flash"></div>""", unsafe_allow_html=True)
     else:
         st.markdown(f"<style>.stApp {{ background: {INK} !important; }}</style>", unsafe_allow_html=True)
 
@@ -492,9 +541,9 @@ def page_home():
     with left_col:
         st.markdown("<div style='height: 18vh;'></div>", unsafe_allow_html=True)
         st.markdown("""
-        <div class="home-brand fade-in">
-            <div class="eyebrow">SINCE 2020</div>
-            <div class="title">천비칠마<br>상조회</div>
+        <div class="home-brand">
+            <div class="eyebrow"><span class="home-seal">相助</span>SINCE 2020</div>
+            <div class="title"><span style="animation-delay:1.3s">천</span><span style="animation-delay:1.42s">비</span><span style="animation-delay:1.54s">칠</span><span style="animation-delay:1.66s">마</span><br><span style="animation-delay:1.78s">상</span><span style="animation-delay:1.9s">조</span><span style="animation-delay:2.02s">회</span></div>
             <div class="rule"></div>
             <div class="sub">투명한 회비 장부</div>
         </div>""", unsafe_allow_html=True)
