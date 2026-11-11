@@ -5,6 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import base64
 from html import escape
+import streamlit.components.v1 as components
 
 # -----------------------------------------------------------------------------
 # 1. 페이지 설정
@@ -962,4 +963,36 @@ rules    = st.Page(page_rules,      title="회칙",       url_path="rules")
 history  = st.Page(page_history,    title="탈회등 회원", url_path="history")
 
 pg = st.navigation([home, status, personal, rules, history], position="hidden")
+
+BGM_URL = "https://cdn.jsdelivr.net/gh/ant11353-cyber/sangjo-app@main/bgm.mp3"
+
+def bgm_player(volume=1.0):
+    # Streamlit은 페이지를 옮길 때마다 화면을 새로 그림 → 오디오를 앱 바깥(브라우저 화면)에 한 번만 붙여야 끊기지 않음
+    # 휴대폰은 자동재생을 막으므로 첫 터치 때 재생 시작
+    components.html(f"""
+<script>
+const doc = window.parent.document;
+if (!doc.getElementById('bgm')) {{
+  const a = doc.createElement('audio');
+  a.id = 'bgm'; a.src = '{BGM_URL}'; a.loop = true; a.volume = {volume};
+  doc.body.appendChild(a);
+  const btn = doc.createElement('div');
+  btn.textContent = '♪';
+  btn.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:1000001;width:34px;height:34px;background:#a63a2b;color:#f3ead8;display:flex;align-items:center;justify-content:center;font-family:"Noto Serif KR",serif;font-size:14px;cursor:pointer;opacity:.85;';
+  doc.body.appendChild(btn);
+  const setLabel = () => {{ btn.textContent = a.paused ? '消' : '♪'; btn.style.opacity = a.paused ? '.45' : '.85'; }};
+  a.addEventListener('play', setLabel); a.addEventListener('pause', setLabel);
+  a.play().catch(() => {{}});
+  let started = false;
+  const firstTap = (e) => {{
+    if (started || e.target === btn) return;
+    started = true; a.play().catch(() => {{}});
+  }};
+  doc.addEventListener('click', firstTap, true);
+  doc.addEventListener('touchend', firstTap, true);
+  btn.addEventListener('click', () => {{ started = true; a.paused ? a.play() : a.pause(); }});
+}}
+</script>""", height=0)
+
+bgm_player()
 pg.run()
