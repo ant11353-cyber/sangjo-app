@@ -83,6 +83,7 @@ PLOTLY_LAYOUT = dict(
     plot_bgcolor='rgba(0,0,0,0)',
     font=dict(color=HANJI, family='Noto Sans KR, sans-serif'),
     margin=dict(l=10, r=10, t=40, b=10),
+    dragmode=False,  # 휴대폰에서 터치·드래그로 확대되지 않도록
 )
 
 def make_gauge_chart(paid, total, title="납부율"):
@@ -135,8 +136,8 @@ def make_payment_bar_chart(df_analysis):
     fig.update_layout(
         **PLOTLY_LAYOUT,
         height=max(250, len(df_plot) * 34 + 60),
-        xaxis=dict(range=[0, 118], ticksuffix='%', gridcolor='rgba(236,227,207,0.06)', tickfont=dict(color=MUTED)),
-        yaxis=dict(gridcolor='rgba(0,0,0,0)', tickfont=dict(color=HANJI, size=12)),
+        xaxis=dict(range=[0, 118], fixedrange=True, ticksuffix='%', gridcolor='rgba(236,227,207,0.06)', tickfont=dict(color=MUTED)),
+        yaxis=dict(fixedrange=True, gridcolor='rgba(0,0,0,0)', tickfont=dict(color=HANJI, size=12)),
         bargap=0.35,
     )
     return fig
@@ -152,8 +153,8 @@ def make_interest_timeline(principal, current):
                          text=[f"{format_comma(current)}원"], textposition='outside', textfont=dict(color=HANJI)))
     fig.update_layout(
         **PLOTLY_LAYOUT, height=280, barmode='group',
-        yaxis=dict(gridcolor='rgba(236,227,207,0.06)', tickfont=dict(color=MUTED)),
-        xaxis=dict(tickfont=dict(color=HANJI)),
+        yaxis=dict(fixedrange=True, gridcolor='rgba(236,227,207,0.06)', tickfont=dict(color=MUTED)),
+        xaxis=dict(fixedrange=True, tickfont=dict(color=HANJI)),
         legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5, font=dict(color=HANJI)),
         bargap=0.4, bargroupgap=0.1,
     )
